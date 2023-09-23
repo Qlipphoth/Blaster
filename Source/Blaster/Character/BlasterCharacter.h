@@ -26,6 +26,10 @@ protected:
 	void Turn(float Value);
 	void LookUp(float Value);
 	void EquipButtonPressed();
+	void CrouchButtonPressed();
+	void AimButtonPressed();
+	void AimButtonReleased();
+	void AimOffset(float DeltaTime);
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
@@ -43,17 +47,26 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerEquipButtonPressed();
 
-public:	
-
 	UPROPERTY(ReplicatedUsing = OnRep_OverlappingWeapon)
 	class AWeapon* OverlappingWeapon;
 
 	UFUNCTION()
 	void OnRep_OverlappingWeapon(AWeapon* LastWeapon);
 
+	// UPROPERTY(Replicated)
+	float AO_Yaw;
+
+	// UPROPERTY(Replicated)
+	float AO_Pitch;
+
+	FRotator StartingAimRotation;
+
 public:	
 	void SetOverlappingWeapon(AWeapon* Weapon);
 	bool IsWeaponEquipped() const;
+	bool IsAiming();
+	FORCEINLINE float GetAO_Yaw() const { return AO_Yaw; }
+	FORCEINLINE float GetAO_Pitch() const { return AO_Pitch; }
 
 public:	
 

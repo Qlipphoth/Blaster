@@ -7,16 +7,24 @@
 #include "Engine/SkeletalMeshSocket.h"
 #include "Components/SphereComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 UCombatComponent::UCombatComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+
+	BaseWalkSpeed = 600.f;
+	AimWalkSpeed = 450.f;
 }
 
 void UCombatComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	if (Character)
+	{
+		Character->GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed;
+	}
 }
 
 void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -29,6 +37,35 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UCombatComponent, EquippedWeapon);
+	DOREPLIFETIME(UCombatComponent, bAiming);
+}
+
+void UCombatComponent::SetAiming(bool bIsAiming)
+{
+	bAiming = bIsAiming;
+	ServerSetAiming(bIsAiming);
+	if (Character)
+	{
+		Character->GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimWalkSpeed : BaseWalkSpeed;
+	}
+}
+
+void UCombatComponent::ServerSetAiming_Implementation(bool bIsAiming)
+{
+	bAiming = bIsAiming;
+	if (Character)
+	{
+		Character->GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimWalkSpeed : BaseWalkSpeed;
+	}
+}
+
+void UCombatComponent::OnRep_EquippedWeapon()
+{
+	if (EquippedWeapon && Character)
+	{
+		Character->GetCharacterMovement()->bOrientRotationToMovement = false;
+		Character->bUseControllerRotationYaw = true;
+	}
 }
 
 void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
@@ -43,5 +80,5 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 		HandSocket->AttachActor(EquippedWeapon, Character->GetMesh());
 	}
 	EquippedWeapon->SetOwner(Character);  // SetOwner 同样会在客户端调用 OnRep_Owner
-	// EquippedWeapon->ShowPickupWidget(false);
+	
 }

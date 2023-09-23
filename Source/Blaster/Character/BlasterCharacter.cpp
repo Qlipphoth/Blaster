@@ -9,6 +9,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Blaster/Weapon/Weapon.h"
 #include "Blaster/BlasterComponents/CombatComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 ABlasterCharacter::ABlasterCharacter()
 {
@@ -31,6 +33,13 @@ ABlasterCharacter::ABlasterCharacter()
 
 	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
 	Combat->SetIsReplicated(true);
+
+	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;  // 设置了此项才能够蹲下
+	// 设置胶囊体与网格不会与摄像机碰撞
+	GetCapsuleComponent()->SetCollisionResponseToChannel(
+		ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(
+		ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 }
 
 void ABlasterCharacter::PostInitializeComponents()
@@ -40,6 +49,9 @@ void ABlasterCharacter::PostInitializeComponents()
 	{
 		Combat->Character = this;
 	}
+	GetCharacterMovement()->JumpZVelocity = 1600.f;
+	GetCharacterMovement()->GravityScale = 3.f;
+	GetCharacterMovement()->MaxWalkSpeedCrouched = 350.f;
 }
 
 void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -48,6 +60,9 @@ void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 
 	DOREPLIFETIME_CONDITION(ABlasterCharacter, OverlappingWeapon, COND_OwnerOnly);
 	// Component 不需要注册进 ReplicatedProps
+
+	// DOREPLIFETIME_CONDITION(ABlasterCharacter, AO_Yaw, COND_SkipOwner);
+	// DOREPLIFETIME_CONDITION(ABlasterCharacter, AO_Pitch, COND_SkipOwner);
 }
 
 void ABlasterCharacter::BeginPlay()
@@ -60,6 +75,7 @@ void ABlasterCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	AimOffset(DeltaTime);
 }
 
 void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -68,6 +84,9 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Equip", IE_Pressed, this, &ABlasterCharacter::EquipButtonPressed);
+	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &ABlasterCharacter::CrouchButtonPressed);
+	PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &ABlasterCharacter::AimButtonPressed);
+	PlayerInputComponent->BindAction("Aim", IE_Released, this, &ABlasterCharacter::AimButtonReleased);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &ABlasterCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ABlasterCharacter::MoveRight);
@@ -136,6 +155,88 @@ void ABlasterCharacter::ServerEquipButtonPressed_Implementation()
 	}
 }
 
+void ABlasterCharacter::CrouchButtonPressed()
+{
+	if (bIsCrouched)
+	{
+		
+		UnCrouch();
+	}
+	else
+	{
+		// 如同 Jump，Crouch 也是在 Character 中就有的功能，并且本身也已经 replicated
+		// Crouch 会自动改变碰撞体的大小以及角色的移动速度，十分方便
+		Crouch();
+	}
+}
+
+void ABlasterCharacter::AimButtonPressed()
+{
+	if (Combat)
+	{
+		Combat->SetAiming(true);
+	}
+}
+
+void ABlasterCharacter::AimButtonReleased()
+{
+	if (Combat)
+	{
+		Combat->SetAiming(false);
+	}
+}
+
+void ABlasterCharacter::AimOffset(float DeltaTime)
+{
+	if (Combat && Combat->EquippedWeapon == nullptr) return;
+	FVector Velocity = GetVelocity();
+	Velocity.Z = 0.f;
+	float Speed = Velocity.Size();
+	bool bIsInAir = GetCharacterMovement()->IsFalling();
+
+	FString mode = GetNetMode() == NM_Client ? TEXT("Client") : TEXT("Server");
+
+	if (Speed == 0.f && !bIsInAir) // standing still, not jumping
+	{
+		FRotator CurrentAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
+		// FRotator CurrentAimRotation = FRotator(0.f, GetControlRotation().Yaw, 0.f);
+
+		FRotator DeltaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(
+			CurrentAimRotation, StartingAimRotation);
+		AO_Yaw = DeltaAimRotation.Yaw;
+		// bUseControllerRotationYaw = true;
+		bUseControllerRotationYaw = false;
+
+		GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, FString::Printf(
+			TEXT("Mode: %s, AO_Yaw: %f"), *mode, AO_Yaw));
+		GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, FString::Printf(
+			TEXT("Mode: %s, CurrentAimRotation: %s"), *mode, *CurrentAimRotation.ToString()));
+		GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, FString::Printf(
+			TEXT("Mode: %s, StartingAimRotation: %s"), *mode, *StartingAimRotation.ToString()));
+	}
+
+	if (Speed > 0.f || bIsInAir) // running, or jumping
+	{
+		StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
+		AO_Yaw = 0.f;
+		bUseControllerRotationYaw = true;
+		// GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, TEXT("Set AO_Yaw to 0"));
+	}
+
+	AO_Pitch = GetBaseAimRotation().Pitch;
+	if (AO_Pitch > 90.f && !IsLocallyControlled())
+	{
+		// map pitch from [270, 360) to [-90, 0)
+		FVector2D InRange(270.f, 360.f);
+		FVector2D OutRange(-90.f, 0.f);
+		AO_Pitch = FMath::GetMappedRangeValueClamped(InRange, OutRange, AO_Pitch);
+	}
+
+	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, FString::Printf(
+		TEXT("Mode: %s, AO_Pitch: %f"), *mode, AO_Pitch));
+
+}
+
 void ABlasterCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 {
 	if (OverlappingWeapon)
@@ -174,7 +275,10 @@ bool ABlasterCharacter::IsWeaponEquipped() const
 	return (Combat && Combat->EquippedWeapon);
 }
 
-
+bool ABlasterCharacter::IsAiming()
+{
+	return (Combat && Combat->bAiming);
+}
 
 
 
