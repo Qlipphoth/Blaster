@@ -40,6 +40,16 @@ ABlasterCharacter::ABlasterCharacter()
 		ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetMesh()->SetCollisionResponseToChannel(
 		ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+
+	// 设置角色旋转速度  (Pitch, Yaw, Roll)
+	// GetCharacterMovement()->RotationRate = FRotator(0.f, 0.f, 850.f);
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 850.f, 0.f);
+
+	TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+
+	// 设置网络同步频率
+	NetUpdateFrequency = 66.f;
+	MinNetUpdateFrequency = 33.f;
 }
 
 void ABlasterCharacter::PostInitializeComponents()
@@ -82,7 +92,8 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	// PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ABlasterCharacter::Jump);
 	PlayerInputComponent->BindAction("Equip", IE_Pressed, this, &ABlasterCharacter::EquipButtonPressed);
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &ABlasterCharacter::CrouchButtonPressed);
 	PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &ABlasterCharacter::AimButtonPressed);
@@ -194,7 +205,7 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 	float Speed = Velocity.Size();
 	bool bIsInAir = GetCharacterMovement()->IsFalling();
 
-	FString mode = GetNetMode() == NM_Client ? TEXT("Client") : TEXT("Server");
+	// FString mode = GetNetMode() == NM_Client ? TEXT("Client") : TEXT("Server");
 
 	if (Speed == 0.f && !bIsInAir) // standing still, not jumping
 	{
@@ -204,15 +215,21 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 		FRotator DeltaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(
 			CurrentAimRotation, StartingAimRotation);
 		AO_Yaw = DeltaAimRotation.Yaw;
-		// bUseControllerRotationYaw = true;
-		bUseControllerRotationYaw = false;
 
-		GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, FString::Printf(
-			TEXT("Mode: %s, AO_Yaw: %f"), *mode, AO_Yaw));
-		GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, FString::Printf(
-			TEXT("Mode: %s, CurrentAimRotation: %s"), *mode, *CurrentAimRotation.ToString()));
-		GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, FString::Printf(
-			TEXT("Mode: %s, StartingAimRotation: %s"), *mode, *StartingAimRotation.ToString()));
+		if (TurningInPlace == ETurningInPlace::ETIP_NotTurning)
+		{
+			InterpAO_Yaw = AO_Yaw;
+		}
+		
+		bUseControllerRotationYaw = true;
+		TurnInPlace(DeltaTime);
+
+		// GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, FString::Printf(
+		// 	TEXT("Mode: %s, AO_Yaw: %f"), *mode, AO_Yaw));
+		// GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, FString::Printf(
+		// 	TEXT("Mode: %s, CurrentAimRotation: %s"), *mode, *CurrentAimRotation.ToString()));
+		// GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, FString::Printf(
+		// 	TEXT("Mode: %s, StartingAimRotation: %s"), *mode, *StartingAimRotation.ToString()));
 	}
 
 	if (Speed > 0.f || bIsInAir) // running, or jumping
@@ -220,6 +237,7 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 		StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
 		AO_Yaw = 0.f;
 		bUseControllerRotationYaw = true;
+		TurningInPlace = ETurningInPlace::ETIP_NotTurning;
 		// GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, TEXT("Set AO_Yaw to 0"));
 	}
 
@@ -232,9 +250,47 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 		AO_Pitch = FMath::GetMappedRangeValueClamped(InRange, OutRange, AO_Pitch);
 	}
 
-	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, FString::Printf(
-		TEXT("Mode: %s, AO_Pitch: %f"), *mode, AO_Pitch));
+	// GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, FString::Printf(
+	// 	TEXT("Mode: %s, AO_Pitch: %f"), *mode, AO_Pitch));
 
+}
+
+void ABlasterCharacter::Jump()
+{
+	if (bIsCrouched)
+	{
+		UnCrouch();
+		// Super::Jump();
+		// TODO: 为什么调用了 UnCrouch 之后再调用 Super::Jump 会无效？
+	}
+	else
+	{
+		Super::Jump();
+	}
+}
+
+void ABlasterCharacter::TurnInPlace(float DeltaTime)
+{
+	if (AO_Yaw > 90.f)
+	{
+		TurningInPlace = ETurningInPlace::ETIP_Right;
+	}
+	else if (AO_Yaw < -90.f)
+	{
+		TurningInPlace = ETurningInPlace::ETIP_Left;
+	}
+	if (TurningInPlace != ETurningInPlace::ETIP_NotTurning)
+	{
+		// InterpAO_Yaw = FMath::FInterpTo(InterpAO_Yaw, 0.f, DeltaTime, 4.f);
+		InterpAO_Yaw = FMath::FInterpTo(InterpAO_Yaw, 0.f, DeltaTime, 10.f);
+
+		AO_Yaw = InterpAO_Yaw;
+		if (FMath::Abs(AO_Yaw) < 15.f)
+		{
+			TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+			StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
+		}
+	}
 }
 
 void ABlasterCharacter::SetOverlappingWeapon(AWeapon* Weapon)
@@ -280,6 +336,11 @@ bool ABlasterCharacter::IsAiming()
 	return (Combat && Combat->bAiming);
 }
 
+AWeapon* ABlasterCharacter::GetEquippedWeapon() const
+{
+	if (Combat) return Combat->EquippedWeapon;
+	return nullptr;
+}
 
 
 
