@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "CombatComponent.generated.h"
 
+#define TRACE_LENGTH 80000.f
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class BLASTER_API UCombatComponent : public UActorComponent
@@ -34,13 +35,21 @@ protected:
 	void FireButtonPressed(bool bPressed);
 
 	UFUNCTION(Server, Reliable)
-	void ServerFire();
+	// void ServerFire();
+	void ServerFire(const FVector_NetQuantize& TraceHitTarget);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void MulticastFire();
+	// void MulticastFire();
+	void MulticastFire(const FVector_NetQuantize& TraceHitTarget);
+
+	void TraceUnderCrosshairs(FHitResult& TraceHitResult);
+
+	void SetHUDCrosshairs(float DeltaTime);
 
 private:
 	class ABlasterCharacter* Character;
+	class ABlasterPlayerController* Controller;  // 通过 PlayerController 来访问 HUD
+	class ABlasterHUD* HUD;
 	
 	// 声明一个 Replicated 属性，就必须注册在 GetLifetimeReplicatedProps 中
 	// UPROPERTY(Replicated)
@@ -58,6 +67,15 @@ private:
 	float AimWalkSpeed;
 
 	bool bFireButtonPressed;
+
+	/** 
+	* HUD and crosshairs
+	*/
+
+	float CrosshairVelocityFactor;
+	float CrosshairInAirFactor;
+
+	FVector HitTarget;  // 击中的目标点
 
 public:	
 		
