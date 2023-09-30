@@ -37,6 +37,7 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	bIsCrouched = BlasterCharacter->bIsCrouched;
 	bAiming = BlasterCharacter->IsAiming();
 	TurningInPlace = BlasterCharacter->GetTurningInPlace();
+	bRotateRootBone = BlasterCharacter->ShouldRotateRootBone();
 
 	// Offset Yaw for Strafing
 	FRotator AimRotation = BlasterCharacter->GetBaseAimRotation();  // 摄像机的旋转
@@ -73,43 +74,48 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		{
 			bLocallyControlled = true;
 			FTransform RightHandTransform = BlasterCharacter->GetMesh()->GetSocketTransform(
-				FName("Hand_R"), ERelativeTransformSpace::RTS_World);
-			RightHandRotation = UKismetMathLibrary::FindLookAtRotation(
-				RightHandTransform.GetLocation(), 
-				RightHandTransform.GetLocation() +  
-				(RightHandTransform.GetLocation() - BlasterCharacter->GetHitTarget())
-			);
+				FName("hand_r"), ERelativeTransformSpace::RTS_World);
+			
+			// RightHandRotation = UKismetMathLibrary::FindLookAtRotation(
+			// 	RightHandTransform.GetLocation(), 
+			// 	RightHandTransform.GetLocation() +  
+			// 	(RightHandTransform.GetLocation() - BlasterCharacter->GetHitTarget())
+			// );
 
-			GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, FString::Printf(
-				TEXT("HitTarget: %s"), *BlasterCharacter->GetHitTarget().ToString()));
+			FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(
+				RightHandTransform.GetLocation(), 
+				RightHandTransform.GetLocation() + 
+				(RightHandTransform.GetLocation() - BlasterCharacter->GetHitTarget()));
+			RightHandRotation = FMath::RInterpTo(RightHandRotation, LookAtRotation, DeltaTime, 30.f);
 		}
 
 		FTransform MuzzleTransform = EquippedWeapon->GetWeaponMesh()->GetSocketTransform(
 			FName("MuzzleFlash"), ERelativeTransformSpace::RTS_World);
 		FVector MuzzleX(FRotationMatrix(MuzzleTransform.Rotator()).GetScaledAxis(EAxis::X));
-		DrawDebugDirectionalArrow(
-			GetWorld(), 
-			MuzzleTransform.GetLocation(), 
-			MuzzleTransform.GetLocation() + MuzzleX * 100.f, 
-			10.f, 
-			FColor::Red, 
-			false, 
-			-1.f, 
-			0, 
-			1.f
-		);
+		
+		// DrawDebugDirectionalArrow(
+		// 	GetWorld(), 
+		// 	MuzzleTransform.GetLocation(), 
+		// 	MuzzleTransform.GetLocation() + MuzzleX * 100.f, 
+		// 	10.f, 
+		// 	FColor::Red, 
+		// 	false, 
+		// 	-1.f, 
+		// 	0, 
+		// 	1.f
+		// );
 
-		DrawDebugDirectionalArrow(
-			GetWorld(), 
-			MuzzleTransform.GetLocation(), 
-			BlasterCharacter->GetHitTarget(), 
-			10.f, 
-			FColor::Green, 
-			false, 
-			-1.f, 
-			0, 
-			1.f
-		);
+		// DrawDebugDirectionalArrow(
+		// 	GetWorld(), 
+		// 	MuzzleTransform.GetLocation(), 
+		// 	BlasterCharacter->GetHitTarget(), 
+		// 	10.f, 
+		// 	FColor::Green, 
+		// 	false, 
+		// 	-1.f, 
+		// 	0, 
+		// 	1.f
+		// );
 	}
 
 	
