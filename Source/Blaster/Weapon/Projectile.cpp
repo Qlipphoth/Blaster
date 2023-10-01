@@ -29,8 +29,8 @@ AProjectile::AProjectile()
 
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
 	ProjectileMovementComponent->bRotationFollowsVelocity = true;
-	// ProjectileMovementComponent->InitialSpeed = 600.f;
-	// ProjectileMovementComponent->MaxSpeed = 600.f;
+	ProjectileMovementComponent->InitialSpeed = 15000.f;
+	ProjectileMovementComponent->MaxSpeed = 15000.f;
 }
 
 // Called when the game starts or when spawned
@@ -63,7 +63,8 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimi
 	ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor);
 	if (BlasterCharacter)
 	{
-		BlasterCharacter->MulticastHit();
+		// 广播击中动画
+		// BlasterCharacter->MulticastHit();
 	}
 
 	Destroy();

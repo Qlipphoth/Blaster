@@ -20,11 +20,18 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostInitializeComponents() override;
 	void         PlayFireMontage(bool bAiming);
+	void		 PlayElimMontage();
 
-	UFUNCTION(NetMulticast, Unreliable)
-	void MulticastHit();
+	// 使用 Replicate 代替了 RPC
+	// UFUNCTION(NetMulticast, Unreliable)
+	// void MulticastHit();
 
 	virtual void OnRep_ReplicatedMovement() override;
+	
+	void Elim();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastElim();
 
 protected:
 	virtual void BeginPlay() override;
@@ -43,9 +50,14 @@ protected:
 
 	void FireButtonPressed();
 	void FireButtonReleased();
-	void PlayHitreactMontage();
+	void PlayHitReactMontage();
 
 	virtual void Jump() override;
+
+	UFUNCTION()
+	void ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, 
+		class AController* InstigatorController, AActor* DamageCauser);
+	void UpdateHUDHealth();
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
@@ -84,6 +96,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* HitReactMontage;
 
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* ElimMontage;
+
 	void HideCameraIfCharacterClose();
 
 	UPROPERTY(EditAnywhere)
@@ -97,6 +112,30 @@ private:
 	float TimeSinceLastMovementReplication;
 	float CalculateSpeed();
 
+	/**
+	* Player health
+	*/
+
+	UPROPERTY(EditAnywhere, Category = "Player Stats")
+	float MaxHealth = 100.f;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Health, VisibleAnywhere, Category = "Player Stats")
+	float Health = 100.f;
+
+	UFUNCTION()
+	void OnRep_Health();
+
+	class ABlasterPlayerController* BlasterPlayerController;
+
+	bool bElimmed = false;
+
+	FTimerHandle ElimTimer;
+
+	UPROPERTY(EditDefaultsOnly)
+	float ElimDelay = 3.f;
+
+	void ElimTimerFinished();
+
 public:	
 	void SetOverlappingWeapon(AWeapon* Weapon);
 	bool IsWeaponEquipped() const;
@@ -108,6 +147,7 @@ public:
 	FVector GetHitTarget() const;
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	FORCEINLINE bool ShouldRotateRootBone() const { return bRotateRootBone; }
+	FORCEINLINE bool IsElimmed() const { return bElimmed; }
 
 public:	
 

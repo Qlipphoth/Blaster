@@ -28,8 +28,19 @@ UCLASS()
 class BLASTER_API ABlasterHUD : public AHUD
 {
 	GENERATED_BODY()
+
 public:
 	virtual void DrawHUD() override;
+	
+	UPROPERTY(EditAnywhere, Category = "Player Stats")
+	TSubclassOf<class UUserWidget> CharacterOverlayClass;
+
+	class UCharacterOverlay* CharacterOverlay;
+
+protected:
+	virtual void BeginPlay() override;
+	void AddCharacterOverlay();
+
 private:
 	FHUDPackage HUDPackage;
 	void DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCenter, 
