@@ -50,8 +50,13 @@ protected:
 	void SetHUDCrosshairs(float DeltaTime);
 
 private:
+	UPROPERTY(VisibleAnywhere)
 	class ABlasterCharacter* Character;
+
+	UPROPERTY(VisibleAnywhere)
 	class ABlasterPlayerController* Controller;  // 通过 PlayerController 来访问 HUD
+	
+	UPROPERTY(VisibleAnywhere)
 	class ABlasterHUD* HUD;
 	
 	// 声明一个 Replicated 属性，就必须注册在 GetLifetimeReplicatedProps 中
@@ -110,6 +115,8 @@ private:
 
 	void StartFireTimer();
 	void FireTimerFinished();
+
+	bool CanFire();
 
 public:	
 		

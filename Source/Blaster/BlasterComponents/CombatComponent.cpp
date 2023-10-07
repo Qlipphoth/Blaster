@@ -129,9 +129,15 @@ void UCombatComponent::FireButtonPressed(bool bPressed)
 	}
 }
 
+bool UCombatComponent::CanFire()
+{
+	if (EquippedWeapon == nullptr) return false;
+	return !EquippedWeapon->IsEmpty() && bCanFire;
+}
+
 void UCombatComponent::Fire()
 {
-	if (bCanFire)
+	if (CanFire())
 	{
 		bCanFire = false;
 		ServerFire(HitTarget);
@@ -311,6 +317,11 @@ void UCombatComponent::OnRep_EquippedWeapon()
 void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 {
 	if (Character == nullptr || WeaponToEquip == nullptr) return;
+	
+	if (EquippedWeapon)
+	{
+		EquippedWeapon->Dropped();
+	}
 
 	EquippedWeapon = WeaponToEquip;
 	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
@@ -319,6 +330,11 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 	{
 		HandSocket->AttachActor(EquippedWeapon, Character->GetMesh());
 	}
-	EquippedWeapon->SetOwner(Character);  // SetOwner 同样会在客户端调用 OnRep_Owner
+	// AACtor 的 Owner 属性被标记为 Replicated，当 Owner 属性发生变化时，会调用 OnRep_Owner
+	EquippedWeapon->SetOwner(Character);
 	
+	EquippedWeapon->SetHUDAmmo();
+	Character->GetCharacterMovement()->bOrientRotationToMovement = false;
+	Character->bUseControllerRotationYaw = true;
 }
+

@@ -19,6 +19,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Blaster/PlayerState/BlasterPlayerState.h"
 
 ABlasterCharacter::ABlasterCharacter()
 {
@@ -119,6 +120,12 @@ void ABlasterCharacter::Elim()
 
 void ABlasterCharacter::MulticastElim_Implementation()
 {
+	// 淘汰时将 HUD 的武器弹药设置为 0
+	if (BlasterPlayerController)
+	{
+		BlasterPlayerController->SetHUDWeaponAmmo(0);
+	}
+
 	bElimmed = true;
 	PlayElimMontage();
 	
@@ -215,6 +222,7 @@ void ABlasterCharacter::Tick(float DeltaTime)
 	// 	CalculateAO_Pitch();
 	// }
 	HideCameraIfCharacterClose();
+	PollInit();
 }
 
 void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -326,6 +334,20 @@ void ABlasterCharacter::UpdateHUDHealth()
 		BlasterPlayerController->SetHUDHealth(Health, MaxHealth);
 	}
 }
+
+void ABlasterCharacter::PollInit()
+{
+	if (BlasterPlayerState == nullptr)
+	{
+		BlasterPlayerState = GetPlayerState<ABlasterPlayerState>();
+		if (BlasterPlayerState)
+		{
+			BlasterPlayerState->AddToScore(0.f);
+			BlasterPlayerState->AddToDefeats(0);
+		}
+	}
+}
+
 
 void ABlasterCharacter::UpdateDissolveMaterial(float DissolveValue)
 {

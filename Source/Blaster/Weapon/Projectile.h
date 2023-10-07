@@ -42,6 +42,7 @@ private:
 	UPROPERTY(EditAnywhere)
 	class UParticleSystem* Tracer;
 
+	UPROPERTY(VisibleAnywhere)
 	class UParticleSystemComponent* TracerComponent;
 
 	UPROPERTY(EditAnywhere)

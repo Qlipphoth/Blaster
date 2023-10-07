@@ -62,6 +62,9 @@ protected:
 		class AController* InstigatorController, AActor* DamageCauser);
 	void UpdateHUDHealth();
 
+	// Poll for any relelvant classes and initialize our HUD
+	void PollInit();
+
 private:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	class USpringArmComponent* CameraBoom;
@@ -128,6 +131,7 @@ private:
 	UFUNCTION()
 	void OnRep_Health();
 
+	UPROPERTY()
 	class ABlasterPlayerController* BlasterPlayerController;
 
 	bool bElimmed = false;
@@ -174,6 +178,9 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	class USoundCue* ElimBotSound;
+
+	UPROPERTY(VisibleAnywhere)
+	class ABlasterPlayerState* BlasterPlayerState;
 
 public:	
 	void SetOverlappingWeapon(AWeapon* Weapon);
