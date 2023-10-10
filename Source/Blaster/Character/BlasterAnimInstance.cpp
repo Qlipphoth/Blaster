@@ -6,6 +6,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Blaster/Weapon/Weapon.h"
+#include "Blaster/BlasterTypes/CombatState.h"
 #include "DrawDebugHelpers.h"
 
 void UBlasterAnimInstance::NativeInitializeAnimation()
@@ -76,12 +77,6 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 			bLocallyControlled = true;
 			FTransform RightHandTransform = BlasterCharacter->GetMesh()->GetSocketTransform(
 				FName("hand_r"), ERelativeTransformSpace::RTS_World);
-			
-			// RightHandRotation = UKismetMathLibrary::FindLookAtRotation(
-			// 	RightHandTransform.GetLocation(), 
-			// 	RightHandTransform.GetLocation() +  
-			// 	(RightHandTransform.GetLocation() - BlasterCharacter->GetHitTarget())
-			// );
 
 			FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(
 				RightHandTransform.GetLocation(), 
@@ -90,34 +85,6 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 			RightHandRotation = FMath::RInterpTo(RightHandRotation, LookAtRotation, DeltaTime, 30.f);
 		}
 
-		FTransform MuzzleTransform = EquippedWeapon->GetWeaponMesh()->GetSocketTransform(
-			FName("MuzzleFlash"), ERelativeTransformSpace::RTS_World);
-		FVector MuzzleX(FRotationMatrix(MuzzleTransform.Rotator()).GetScaledAxis(EAxis::X));
-		
-		// DrawDebugDirectionalArrow(
-		// 	GetWorld(), 
-		// 	MuzzleTransform.GetLocation(), 
-		// 	MuzzleTransform.GetLocation() + MuzzleX * 100.f, 
-		// 	10.f, 
-		// 	FColor::Red, 
-		// 	false, 
-		// 	-1.f, 
-		// 	0, 
-		// 	1.f
-		// );
-
-		// DrawDebugDirectionalArrow(
-		// 	GetWorld(), 
-		// 	MuzzleTransform.GetLocation(), 
-		// 	BlasterCharacter->GetHitTarget(), 
-		// 	10.f, 
-		// 	FColor::Green, 
-		// 	false, 
-		// 	-1.f, 
-		// 	0, 
-		// 	1.f
-		// );
+		bUseFABRIK = BlasterCharacter->GetCombatState() != ECombatState::ECS_Reloading;
 	}
-
-	
 }
