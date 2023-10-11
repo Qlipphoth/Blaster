@@ -8,6 +8,34 @@
 #include "GameFramework/PlayerStart.h"
 #include "Blaster/PlayerState/BlasterPlayerState.h"
 
+ABlasterGameMode::ABlasterGameMode()
+{
+	bDelayedStart = true;
+}
+
+void ABlasterGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+
+	LevelStartingTime = GetWorld()->GetTimeSeconds();
+}
+
+void ABlasterGameMode::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (MatchState == MatchState::WaitingToStart)
+	{
+		CountdownTime = WarmupTime - GetWorld()->GetTimeSeconds() + LevelStartingTime;
+		if (CountdownTime <= 0.f)
+		{
+			// Transition from WaitingToStart to InProgress. 
+			// You can call this manually, will also get called if ReadyToStartMatch returns true
+			StartMatch();
+		}
+	}
+}
+
 void ABlasterGameMode::PlayerEliminated(class ABlasterCharacter* ElimmedCharacter, 
     class ABlasterPlayerController* VictimController, 
     ABlasterPlayerController* AttackerController)
