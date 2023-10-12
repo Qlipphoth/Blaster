@@ -10,6 +10,8 @@
 
 ABlasterGameMode::ABlasterGameMode()
 {
+	// Whether the game should immediately start when the first player logs in. 
+	// Affects the default behavior of ReadyToStartMatch
 	bDelayedStart = true;
 }
 
@@ -32,6 +34,22 @@ void ABlasterGameMode::Tick(float DeltaTime)
 			// Transition from WaitingToStart to InProgress. 
 			// You can call this manually, will also get called if ReadyToStartMatch returns true
 			StartMatch();
+		}
+	}
+}
+
+void ABlasterGameMode::OnMatchStateSet()
+{
+	Super::OnMatchStateSet();
+
+	// GameMode 只存在于服务器，因此这里遍历的是服务器上的 PlayerController
+	// 客户端的状态同步需要使用 RepNotify
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		ABlasterPlayerController* BlasterPlayer = Cast<ABlasterPlayerController>(*It);
+		if (BlasterPlayer)
+		{
+			BlasterPlayer->OnMatchStateSet(MatchState);
 		}
 	}
 }
