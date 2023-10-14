@@ -68,6 +68,10 @@ protected:
 	// Poll for any relelvant classes and initialize our HUD
 	void PollInit();
 
+	// Invicible 不需要同步，因为打击判定是在服务器上进行的，通过 Controller 设置该参数
+	// 会让 Server 上的 Controller->Pawn 也变成无敌，因此逻辑不会有问题。
+	bool bInvincible = false;
+
 private:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	class USpringArmComponent* CameraBoom;
@@ -192,7 +196,7 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	class ABlasterPlayerState* BlasterPlayerState;
 
-public:	
+public:	// Getter & Setter
 	void SetOverlappingWeapon(AWeapon* Weapon);
 	bool IsWeaponEquipped() const;
 	bool IsAiming();
@@ -208,6 +212,10 @@ public:
 	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 	ECombatState GetCombatState() const;
 
+	FORCEINLINE bool IsInvincible() const { return bInvincible; }
+	void SetInvincible(bool Invincible) { bInvincible = Invincible; }
+
 public:	
+
 
 };

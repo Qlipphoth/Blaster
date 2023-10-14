@@ -70,6 +70,28 @@ ABlasterCharacter::ABlasterCharacter()
 	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimelineComponent"));
 }
 
+void ABlasterCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	UpdateHUDHealth();
+	if (HasAuthority())
+	{
+		OnTakeAnyDamage.AddDynamic(this, &ABlasterCharacter::ReceiveDamage);
+	}
+
+	bInvincible	= false;
+}
+
+void ABlasterCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	AimOffset(DeltaTime);
+	HideCameraIfCharacterClose();
+	PollInit();
+}
+
 void ABlasterCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
@@ -191,39 +213,14 @@ void ABlasterCharacter::Destroyed()
 	{
 		ElimBotComponent->DestroyComponent();
 	}
-}
 
-void ABlasterCharacter::BeginPlay()
-{
-	Super::BeginPlay();
+	ABlasterGameMode* BlasterGameMode = Cast<ABlasterGameMode>(UGameplayStatics::GetGameMode(this));
+	bool bMatchNotInProgress = BlasterGameMode && BlasterGameMode->GetMatchState() != MatchState::InProgress;
 
-	UpdateHUDHealth();
-	if (HasAuthority())
+	if (Combat && Combat->EquippedWeapon && bMatchNotInProgress)
 	{
-		OnTakeAnyDamage.AddDynamic(this, &ABlasterCharacter::ReceiveDamage);
+		Combat->EquippedWeapon->Destroy();
 	}
-}
-
-void ABlasterCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-	AimOffset(DeltaTime);
-	// if (GetLocalRole() > ENetRole::ROLE_SimulatedProxy && IsLocallyControlled())
-	// {
-	// 	AimOffset(DeltaTime);
-	// }
-	// else
-	// {
-	// 	TimeSinceLastMovementReplication += DeltaTime;
-	// 	if (TimeSinceLastMovementReplication > 0.25f)
-	// 	{
-	// 		OnRep_ReplicatedMovement();
-	// 	}
-	// 	CalculateAO_Pitch();
-	// }
-	HideCameraIfCharacterClose();
-	PollInit();
 }
 
 void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -285,7 +282,6 @@ void ABlasterCharacter::PlayReloadMontage()
 void ABlasterCharacter::PlayHitReactMontage()
 {
 	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
-
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && HitReactMontage)
 	{
@@ -331,6 +327,8 @@ void ABlasterCharacter::ReloadButtonPressed()
 void ABlasterCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, 
 	const UDamageType* DamageType, AController* InstigatorController, AActor* DamageCauser)
 {
+	if (bInvincible) return;
+
 	Health = FMath::Clamp(Health - Damage, 0.f, MaxHealth);
 	UpdateHUDHealth();
 	PlayHitReactMontage();  // 服务器端播放受击动画
