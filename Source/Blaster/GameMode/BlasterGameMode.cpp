@@ -18,7 +18,8 @@ ABlasterGameMode::ABlasterGameMode()
 {
 	// Whether the game should immediately start when the first player logs in. 
 	// Affects the default behavior of ReadyToStartMatch
-	bDelayedStart = true;
+	// bDelayedStart = true;
+	bDelayedStart = false;
 }
 
 void ABlasterGameMode::BeginPlay()
