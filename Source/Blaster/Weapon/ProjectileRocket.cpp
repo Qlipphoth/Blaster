@@ -21,6 +21,7 @@ void AProjectileRocket::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// 由于仅在服务器启用碰撞检测，这里需要在客户端也开启碰撞才能触发 OnHit
 	if (!HasAuthority())
 	{
 		CollisionBox->OnComponentHit.AddDynamic(this, &AProjectileRocket::OnHit);
@@ -66,6 +67,8 @@ void AProjectileRocket::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor,
     UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
 	APawn* FiringPawn = GetInstigator();
+
+	// 伤害依然由服务器计算，但是特效和音效由客户端播放
 	if (FiringPawn && HasAuthority())
 	{
 		AController* FiringController = FiringPawn->GetController();
@@ -111,9 +114,10 @@ void AProjectileRocket::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor,
 	{
 		CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
-	if (TrailSystemComponent && TrailSystemComponent->GetSystemInstance())
+	if (TrailSystemComponent && TrailSystemComponent->GetSystemInstanceController())
 	{
-		TrailSystemComponent->GetSystemInstance()->Deactivate();
+		// TrailSystemComponent->GetSystemInstance()->Deactivate();
+		TrailSystemComponent->GetSystemInstanceController()->Deactivate();
 	}
 	if (ProjectileLoopComponent && ProjectileLoopComponent->IsPlaying())
 	{
@@ -123,5 +127,5 @@ void AProjectileRocket::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor,
 
 void AProjectileRocket::Destroyed()
 {
-
+	// 与父类不同，这里不使用 Destroyed 来播放音效及特效，直接在 OnHit 中处理
 }
