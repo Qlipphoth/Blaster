@@ -38,6 +38,9 @@ public:
 
 	virtual void Destroyed() override;
 
+	UFUNCTION(BlueprintImplementableEvent)  // 在蓝图中实现
+	void ShowSniperScopeWidget(bool bShowScope);
+
 protected:
 	virtual void BeginPlay() override;
 
