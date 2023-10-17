@@ -108,7 +108,7 @@ private:
 	EWeaponState WeaponState;
 
 	UFUNCTION()
-	void OnRep_WeaponState();
+	virtual void OnRep_WeaponState();
 
 	UPROPERTY(VisibleAnywhere, Category = "Weapon Properties")
 	class UWidgetComponent* PickupWidget;
