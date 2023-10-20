@@ -26,8 +26,14 @@ public:
 
 	void Reload();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable)  // Reload 动画播放完毕调用此函数
 	void FinishReloading();
+
+	
+	UFUNCTION(BlueprintCallable)
+	void ShotgunShellReload();
+
+	void JumpToShotgunEnd();
 
 protected:
 	virtual void BeginPlay() override;
@@ -169,6 +175,8 @@ private:
 	void OnRep_CombatState();
 
 	void UpdateAmmoValues();
+
+	void UpdateShotgunAmmoValues();
 
 public:	
 		

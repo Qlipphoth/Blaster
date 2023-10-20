@@ -214,9 +214,12 @@ public:	// Getter & Setter
 	FORCEINLINE float GetHealth() const { return Health; }
 	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 	ECombatState GetCombatState() const;
+	FORCEINLINE UCombatComponent* GetCombat() const { return Combat; }
 
 	FORCEINLINE bool IsInvincible() const { return bInvincible; }
 	void SetInvincible(bool Invincible) { bInvincible = Invincible; }
+
+	FORCEINLINE UAnimMontage* GetReloadMontage() const { return ReloadMontage; }
 
 public:	
 
