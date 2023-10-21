@@ -85,8 +85,12 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 			RightHandRotation = FMath::RInterpTo(RightHandRotation, LookAtRotation, DeltaTime, 30.f);
 		}
 
-		bUseFABRIK = BlasterCharacter->GetCombatState() != ECombatState::ECS_Reloading;
-		bUseAimOffsets = BlasterCharacter->GetCombatState() != ECombatState::ECS_Reloading;
-		bTransformRightHand = BlasterCharacter->GetCombatState() != ECombatState::ECS_Reloading;
+		// bUseFABRIK = BlasterCharacter->GetCombatState() != ECombatState::ECS_Reloading;
+		// bUseAimOffsets = BlasterCharacter->GetCombatState() != ECombatState::ECS_Reloading;
+		// bTransformRightHand = BlasterCharacter->GetCombatState() != ECombatState::ECS_Reloading;
+
+		bUseFABRIK = BlasterCharacter->GetCombatState() == ECombatState::ECS_Unoccupied;
+		bUseAimOffsets = BlasterCharacter->GetCombatState() == ECombatState::ECS_Unoccupied;
+		bTransformRightHand = BlasterCharacter->GetCombatState() == ECombatState::ECS_Unoccupied;
 	}
 }

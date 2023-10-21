@@ -30,10 +30,19 @@ public:
 	void FinishReloading();
 
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable)  // Reload 动画播放完毕调用此函数
 	void ShotgunShellReload();
 
 	void JumpToShotgunEnd();
+
+	UFUNCTION(BlueprintCallable)  // 扔完手雷调用此函数
+	void ThrowGrenadeFinished();
+
+	UFUNCTION(BlueprintCallable)  // 扔完手雷调用此函数，隐藏手雷网格
+	void LaunchGrenade();
+
+	UFUNCTION(Server, Reliable)
+	void ServerLaunchGrenade(const FVector_NetQuantize& Target);
 
 protected:
 	virtual void BeginPlay() override;
@@ -66,6 +75,22 @@ protected:
 
 	void HandleReload();
 	int32 AmountToReload();
+
+	void ThrowGrenade();
+
+	UFUNCTION(Server, Reliable)
+	void ServerThrowGrenade();
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class AProjectile> GrenadeClass;
+
+	void DropEquippedWeapon();
+	void AttachActorToRightHand(AActor* ActorToAttach);
+	void AttachActorToLeftHand(AActor* ActorToAttach);
+	void UpdateCarriedAmmo();
+	void PlayEquipWeaponSound();
+	void ReloadEmptyWeapon();
+	void ShowAttachedGrenade(bool bShowGrenade);
 
 private:
 	UPROPERTY(VisibleAnywhere)
@@ -158,7 +183,7 @@ private:
 	int32 StartingSMGAmmo = 50;
 
 	UPROPERTY(EditAnywhere)
-	int32 StartingShotgunAmmo = 50;
+	int32 StartingShotgunAmmo = 4;
 
 	UPROPERTY(EditAnywhere)
 	int32 StartingSniperAmmo = 10;
@@ -178,6 +203,18 @@ private:
 
 	void UpdateShotgunAmmoValues();
 
+	UPROPERTY(ReplicatedUsing = OnRep_Grenades)
+	int32 Grenades = 50;
+
+	UFUNCTION()
+	void OnRep_Grenades();
+
+	UPROPERTY(EditAnywhere)
+	int32 MaxGrenades = 50;
+
+	void UpdateHUDGrenades();
+
 public:	
+	FORCEINLINE int32 GetGrenades() const { return Grenades; }
 		
 };

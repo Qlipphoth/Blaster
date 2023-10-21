@@ -114,6 +114,7 @@ void ABlasterGameMode::RequestRespawn(ACharacter* ElimmedCharacter, AController*
 	}
 	if (ElimmedController)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("ElimmedController valid"))
         // 随机选择一个出生点
 		TArray<AActor*> PlayerStarts;
 		UGameplayStatics::GetAllActorsOfClass(this, APlayerStart::StaticClass(), PlayerStarts);

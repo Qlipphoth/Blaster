@@ -5,6 +5,7 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
+#include "Components/BoxComponent.h"
 
 // TODO: 创建 Grenade 自己的 MovementComponent，实现自定义的移动逻辑
 
@@ -17,11 +18,16 @@ AProjectileGrenade::AProjectileGrenade()
 	ProjectileMovementComponent->bRotationFollowsVelocity = true;
 	ProjectileMovementComponent->SetIsReplicated(true);
 	ProjectileMovementComponent->bShouldBounce = true;
+
+	
 }
 
 void AProjectileGrenade::BeginPlay()
 {
 	AActor::BeginPlay();
+
+	// 运动时忽略角色
+	CollisionBox->IgnoreActorWhenMoving(GetOwner(), true);
 
 	SpawnTrailSystem();
 	StartDestroyTimer();

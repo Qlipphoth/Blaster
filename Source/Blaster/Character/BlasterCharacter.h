@@ -24,6 +24,9 @@ public:
 	void         PlayFireMontage(bool bAiming);
 	void 	   	 PlayReloadMontage();	
 	void		 PlayElimMontage();
+	void         PlayHitReactMontage();
+	void         PlayThrowGrenadeMontage();
+	void         GrenadeButtonPressed();
 
 	// 使用 Replicate 代替了 RPC
 	// UFUNCTION(NetMulticast, Unreliable)
@@ -59,7 +62,6 @@ protected:
 
 	void FireButtonPressed();
 	void FireButtonReleased();
-	void PlayHitReactMontage();
 
 	virtual void Jump() override;
 
@@ -121,6 +123,9 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* ElimMontage;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* ThrowGrenadeMontage;
 
 	void HideCameraIfCharacterClose();
 
@@ -199,6 +204,13 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	class ABlasterPlayerState* BlasterPlayerState;
 
+		/** 
+	* Grenade
+	*/
+
+	UPROPERTY(VisibleAnywhere)
+	UStaticMeshComponent* AttachedGrenade;
+
 public:	// Getter & Setter
 	void SetOverlappingWeapon(AWeapon* Weapon);
 	bool IsWeaponEquipped() const;
@@ -220,6 +232,7 @@ public:	// Getter & Setter
 	void SetInvincible(bool Invincible) { bInvincible = Invincible; }
 
 	FORCEINLINE UAnimMontage* GetReloadMontage() const { return ReloadMontage; }
+	FORCEINLINE UStaticMeshComponent* GetAttachedGrenade() const { return AttachedGrenade; }
 
 public:	
 
