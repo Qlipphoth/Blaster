@@ -314,6 +314,7 @@ void UCombatComponent::SetAiming(bool bIsAiming)
 	}
 	if (Character->IsLocallyControlled() && EquippedWeapon->GetWeaponType() == EWeaponType::EWT_SniperRifle)
 	{
+		EquippedWeapon->GetWeaponMesh()->SetVisibility(!bIsAiming);
 		Character->ShowSniperScopeWidget(bIsAiming);
 	}
 }
@@ -685,6 +686,7 @@ void UCombatComponent::OnRep_CarriedAmmo()
 	Controller = Controller == nullptr ? Cast<ABlasterPlayerController>(Character->Controller) : Controller;
 	if (Controller)
 	{
+		// CarriedAmmo 被标记为 Replicated，当 CarriedAmmo 发生变化时，会调用 OnRep_CarriedAmmo
 		Controller->SetHUDCarriedAmmo(CarriedAmmo);
 	}
 	// NOTE: Shotgun 没有携带的子弹了直接跳到最后
@@ -699,3 +701,17 @@ void UCombatComponent::OnRep_CarriedAmmo()
 	}
 }
 
+// ========================================== Pickups ============================================ // 
+
+void UCombatComponent::PickupAmmo(EWeaponType WeaponType, int32 AmmoAmount)
+{
+	if (CarriedAmmoMap.Contains(WeaponType))
+	{
+		CarriedAmmoMap[WeaponType] = FMath::Clamp(CarriedAmmoMap[WeaponType] + AmmoAmount, 0, MaxCarriedAmmo);
+		UpdateCarriedAmmo();
+	}
+	if (EquippedWeapon && EquippedWeapon->IsEmpty() && EquippedWeapon->GetWeaponType() == WeaponType)
+	{
+		Reload();
+	}
+}
