@@ -655,7 +655,12 @@ void UCombatComponent::DropEquippedWeapon()
 {
 	if (EquippedWeapon)
 	{
-		EquippedWeapon->Dropped();
+		if (EquippedWeapon->bDestroyWeapon) {
+			EquippedWeapon->Destroy();
+		}
+		else {
+			EquippedWeapon->Dropped();
+		}
 	}
 }
 

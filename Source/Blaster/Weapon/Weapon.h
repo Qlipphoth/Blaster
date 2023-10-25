@@ -81,6 +81,9 @@ public:
 	*/
 	void EnableCustomDepth(bool bEnable);
 
+	// 用于初始武器的销毁
+	bool bDestroyWeapon = false;
+
 protected:
 	virtual void BeginPlay() override;
 
