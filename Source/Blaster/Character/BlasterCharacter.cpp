@@ -374,6 +374,8 @@ void ABlasterCharacter::EquipButtonPressed()
 {
 	if (Combat)
 	{
+		// 调用 Server RPC，因此装备武器的操作只会在服务器上执行
+		// 再由服务器同步给客户端
 		ServerEquipButtonPressed();
 	}
 }

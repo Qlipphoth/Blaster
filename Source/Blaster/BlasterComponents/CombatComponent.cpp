@@ -140,12 +140,43 @@ void UCombatComponent::Fire()
 	{
 		bCanFire = false;
 		ServerFire(HitTarget);
+		LocalFire(HitTarget);
 		if (EquippedWeapon)
 		{
 			CrosshairShootingFactor = .75f;
 		}
 		StartFireTimer();
 	}
+}
+
+void UCombatComponent::LocalFire(const FVector_NetQuantize& TraceHitTarget)
+{
+	if (EquippedWeapon == nullptr) return;
+	// // NOTE: Shotgun 的 Reload 可以被打断
+	// if (Character && CombatState == ECombatState::ECS_Reloading && EquippedWeapon->GetWeaponType() == EWeaponType::EWT_Shotgun)
+	// {
+	// 	Character->PlayFireMontage(bAiming);
+	// 	EquippedWeapon->Fire(TraceHitTarget);
+	// 	CombatState = ECombatState::ECS_Unoccupied;
+	// 	return;
+	// }
+	if (Character && CombatState == ECombatState::ECS_Unoccupied)
+	{
+		Character->PlayFireMontage(bAiming);
+		EquippedWeapon->Fire(TraceHitTarget);
+	}
+}
+
+void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
+{
+	MulticastFire(TraceHitTarget);
+}
+
+void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
+{
+	// if (Character && Character->IsLocallyControlled() && !Character->HasAuthority()) return;
+	if (Character && Character->IsLocallyControlled()) return;
+	LocalFire(TraceHitTarget);
 }
 
 void UCombatComponent::StartFireTimer()
@@ -168,30 +199,6 @@ void UCombatComponent::FireTimerFinished()
 		Fire();
 	}
 	ReloadEmptyWeapon();
-}
-
-void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
-{
-	if (EquippedWeapon == nullptr) return;
-	// NOTE: Shotgun 的 Reload 可以被打断
-	// if (Character && CombatState == ECombatState::ECS_Reloading 
-	// 	&& EquippedWeapon->GetWeaponType() == EWeaponType::EWT_Shotgun)
-	// {
-	// 	Character->PlayFireMontage(bAiming);
-	// 	EquippedWeapon->Fire(TraceHitTarget);
-	// 	CombatState = ECombatState::ECS_Unoccupied;
-	// 	return;
-	// }
-	if (Character && CombatState == ECombatState::ECS_Unoccupied)
-	{
-		MulticastFire(TraceHitTarget);
-	}
-}
-
-void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
-{
-	Character->PlayFireMontage(bAiming);
-	EquippedWeapon->Fire(TraceHitTarget);
 }
 
 #pragma endregion
@@ -705,6 +712,8 @@ void UCombatComponent::OnRep_SecondaryWeapon()
 
 void UCombatComponent::SwapWeapons()
 {
+	if (CombatState != ECombatState::ECS_Unoccupied) return;
+
 	AWeapon* TempWeapon = EquippedWeapon;
 	EquippedWeapon = SecondaryWeapon;
 	SecondaryWeapon = TempWeapon;
