@@ -12,6 +12,7 @@ enum class EWeaponState : uint8
 {
 	EWS_Initial UMETA(DisplayName = "Initial State"),
 	EWS_Equipped UMETA(DisplayName = "Equipped"),
+	EWS_EquippedSecondary UMETA(DisplayName = "Equipped Secondary"),
 	EWS_Dropped UMETA(DisplayName = "Dropped"),
 
 	EWS_MAX UMETA(DisplayName = "DefaultMAX")  // 枚举的最大值，用于检测枚举是否合法及枚举的数量
@@ -86,6 +87,10 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void OnWeaponStateSet();
+	virtual void OnEquipped();
+	virtual void OnDropped();
+	virtual void OnEquippedSecondary();
 
 	UFUNCTION()
 	virtual void OnSphereOverlap(
@@ -155,8 +160,8 @@ public:
 	FORCEINLINE float GetZoomedFOV() const { return ZoomedFOV; }
 	FORCEINLINE float GetZoomInterpSpeed() const { return ZoomInterpSpeed; }
 
-	bool IsEmpty();
-	bool IsFull();
+	bool IsEmpty() { return Ammo <= 0; }
+	bool IsFull()  { return Ammo == MagCapacity; }
 	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }
 	FORCEINLINE int32 GetAmmo() const { return Ammo; }
 	FORCEINLINE int32 GetMagCapacity() const { return MagCapacity; }

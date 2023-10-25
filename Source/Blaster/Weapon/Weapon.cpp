@@ -13,6 +13,8 @@
 #include "Blaster/PlayerController/BlasterPlayerController.h"
 #include "Blaster/BlasterComponents/CombatComponent.h"
 
+#pragma region Initialization
+
 AWeapon::AWeapon()
 {
  	PrimaryActorTick.bCanEverTick = false;
@@ -69,6 +71,10 @@ void AWeapon::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+#pragma endregion
+
+#pragma region ReplicatedProps
+
 void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -77,13 +83,34 @@ void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 	DOREPLIFETIME(AWeapon, Ammo);
 }
 
-void AWeapon::EnableCustomDepth(bool bEnable)
+#pragma endregion
+
+#pragma region Overrides
+
+/// @brief AACtor 的 Owner 属性被标记为 Replicated，当 Owner 属性发生变化时，会调用 OnRep_Owner
+void AWeapon::OnRep_Owner()
 {
-	if (WeaponMesh)
+	Super::OnRep_Owner();
+	if (Owner == nullptr)
 	{
-		WeaponMesh->SetRenderCustomDepth(bEnable);
+		BlasterOwnerCharacter = nullptr;
+		BlasterOwnerController = nullptr;
+	}
+	else
+	{
+		BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ?
+			Cast<ABlasterCharacter>(Owner) : BlasterOwnerCharacter;
+		if (BlasterOwnerCharacter && BlasterOwnerCharacter->GetEquippedWeapon() 
+			&& BlasterOwnerCharacter->GetEquippedWeapon() == this)
+		{
+			SetHUDAmmo();  // 只有装备主武器才会更新 HUD
+		}
 	}
 }
+
+#pragma endregion
+
+#pragma region Overlap Events
 
 void AWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -105,128 +132,6 @@ void AWeapon::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent,
 	}
 }
 
-void AWeapon::SetHUDAmmo()
-{
-	BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : BlasterOwnerCharacter;
-	if (BlasterOwnerCharacter)
-	{
-		BlasterOwnerController = BlasterOwnerController == nullptr ? Cast<ABlasterPlayerController>(BlasterOwnerCharacter->Controller) : BlasterOwnerController;
-		if (BlasterOwnerController)
-		{
-			BlasterOwnerController->SetHUDWeaponAmmo(Ammo);
-		}
-	}
-}
-
-void AWeapon::SpendRound()
-{
-	Ammo = FMath::Clamp(Ammo - 1, 0, MagCapacity);
-	SetHUDAmmo();
-}
-
-void AWeapon::OnRep_Ammo()
-{
-	// 子弹装满了直接跳到最后
-	BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : BlasterOwnerCharacter;
-	if (BlasterOwnerCharacter && BlasterOwnerCharacter->GetCombat() && IsFull())
-	{
-		BlasterOwnerCharacter->GetCombat()->JumpToShotgunEnd();
-	}
-	SetHUDAmmo();
-}
-
-/// @brief AACtor 的 Owner 属性被标记为 Replicated，当 Owner 属性发生变化时，会调用 OnRep_Owner
-void AWeapon::OnRep_Owner()
-{
-	Super::OnRep_Owner();
-	if (Owner == nullptr)
-	{
-		BlasterOwnerCharacter = nullptr;
-		BlasterOwnerController = nullptr;
-	}
-	else
-	{
-		SetHUDAmmo();
-	}
-}
-
-void AWeapon::SetWeaponState(EWeaponState State)
-{
-	WeaponState = State;
-	switch (WeaponState)
-	{
-	case EWeaponState::EWS_Equipped:
-		ShowPickupWidget(false);
-		AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		WeaponMesh->SetSimulatePhysics(false);
-		WeaponMesh->SetEnableGravity(false);
-		WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-		if (WeaponType == EWeaponType::EWT_SubmachineGun)
-		{
-			WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-			WeaponMesh->SetEnableGravity(true);
-			WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-		}
-		// EnableCustomDepth(false);  // 关闭 Outline
-		break;
-	case EWeaponState::EWS_Dropped:
-		// 仅在服务器端启用武器的检测球体
-		if (HasAuthority())
-		{
-			AreaSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-		}
-		WeaponMesh->SetSimulatePhysics(true);
-		WeaponMesh->SetEnableGravity(true);
-		WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-
-		WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
-		WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
-		WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
-		
-		// // 武器掉落时开启 Outline
-		// WeaponMesh->SetCustomDepthStencilValue(CUSTOM_DEPTH_BLUE);
-		// WeaponMesh->MarkRenderStateDirty();
-		// EnableCustomDepth(true);
-		break;
-	}
-}
-
-/// @brief 武器状态同步到客户端
-void AWeapon::OnRep_WeaponState()
-{
-	switch (WeaponState)
-	{
-	case EWeaponState::EWS_Equipped:
-		ShowPickupWidget(false);
-		WeaponMesh->SetSimulatePhysics(false);
-		WeaponMesh->SetEnableGravity(false);
-		WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-		if (WeaponType == EWeaponType::EWT_SubmachineGun)
-		{
-			WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-			WeaponMesh->SetEnableGravity(true);
-			WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-		}
-		// EnableCustomDepth(false);
-		break;
-	case EWeaponState::EWS_Dropped:
-		WeaponMesh->SetSimulatePhysics(true);
-		WeaponMesh->SetEnableGravity(true);
-		WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-
-		WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
-		WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
-		WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
-		
-		// WeaponMesh->SetCustomDepthStencilValue(CUSTOM_DEPTH_BLUE);
-		// WeaponMesh->MarkRenderStateDirty();
-		// EnableCustomDepth(true);
-		break;
-	}
-}
-
 void AWeapon::ShowPickupWidget(bool bShowWidget)
 {
 	if (PickupWidget)
@@ -234,6 +139,106 @@ void AWeapon::ShowPickupWidget(bool bShowWidget)
 		PickupWidget->SetVisibility(bShowWidget);
 	}
 }
+
+#pragma endregion
+
+#pragma region WeaponState
+
+void AWeapon::SetWeaponState(EWeaponState State)
+{
+	WeaponState = State;
+	OnWeaponStateSet();
+}
+
+/// @brief 武器状态同步到客户端
+void AWeapon::OnRep_WeaponState()
+{
+	OnWeaponStateSet();
+}
+
+void AWeapon::OnWeaponStateSet()
+{
+	switch (WeaponState)
+	{
+	case EWeaponState::EWS_Equipped:
+		OnEquipped();
+		break;
+	case EWeaponState::EWS_EquippedSecondary:
+		OnEquippedSecondary();
+		break;
+	case EWeaponState::EWS_Dropped:
+		OnDropped();
+		break;
+	}
+}
+
+void AWeapon::OnEquipped()
+{
+	ShowPickupWidget(false);
+	AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	WeaponMesh->SetSimulatePhysics(false);
+	WeaponMesh->SetEnableGravity(false);
+	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (WeaponType == EWeaponType::EWT_SubmachineGun)
+	{
+		WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		WeaponMesh->SetEnableGravity(true);
+		WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	}
+	// EnableCustomDepth(false);
+}
+
+void AWeapon::OnDropped() 
+{
+	if (HasAuthority())
+	{
+		AreaSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	}
+	WeaponMesh->SetSimulatePhysics(true);
+	WeaponMesh->SetEnableGravity(true);
+	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
+	WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
+	WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+
+	// WeaponMesh->SetCustomDepthStencilValue(CUSTOM_DEPTH_BLUE);
+	// WeaponMesh->MarkRenderStateDirty();
+	// EnableCustomDepth(true);
+}
+
+void AWeapon::OnEquippedSecondary()
+{
+	ShowPickupWidget(false);
+	AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	WeaponMesh->SetSimulatePhysics(false);
+	WeaponMesh->SetEnableGravity(false);
+	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (WeaponType == EWeaponType::EWT_SubmachineGun)
+	{
+		WeaponMesh->SetEnableGravity(true);
+		WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	}
+	// if (WeaponMesh)
+	// {
+	// 	WeaponMesh->SetCustomDepthStencilValue(CUSTOM_DEPTH_TAN);
+	// 	WeaponMesh->MarkRenderStateDirty();
+	// 	EnableCustomDepth(true);
+	// }
+}
+
+void AWeapon::Dropped()
+{
+	SetWeaponState(EWeaponState::EWS_Dropped);
+	FDetachmentTransformRules DetachRules(EDetachmentRule::KeepWorld, true);
+	WeaponMesh->DetachFromComponent(DetachRules);
+	SetOwner(nullptr);
+	BlasterOwnerCharacter = nullptr;
+	BlasterOwnerController = nullptr;
+}
+
+#pragma endregion
+
+#pragma region Fire
 
 void AWeapon::Fire(const FVector& HitTarget)
 {
@@ -262,14 +267,14 @@ void AWeapon::Fire(const FVector& HitTarget)
 	SpendRound();
 }
 
-void AWeapon::Dropped()
+#pragma endregion
+
+#pragma region Ammo
+
+void AWeapon::SpendRound()
 {
-	SetWeaponState(EWeaponState::EWS_Dropped);
-	FDetachmentTransformRules DetachRules(EDetachmentRule::KeepWorld, true);
-	WeaponMesh->DetachFromComponent(DetachRules);
-	SetOwner(nullptr);
-	BlasterOwnerCharacter = nullptr;
-	BlasterOwnerController = nullptr;
+	Ammo = FMath::Clamp(Ammo - 1, 0, MagCapacity);
+	SetHUDAmmo();
 }
 
 void AWeapon::AddAmmo(int32 AmmoToAdd)
@@ -278,12 +283,53 @@ void AWeapon::AddAmmo(int32 AmmoToAdd)
 	SetHUDAmmo();
 }
 
-bool AWeapon::IsEmpty()
+void AWeapon::OnRep_Ammo()
 {
-	return Ammo <= 0;
+	// 子弹装满了直接跳到最后
+	BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : BlasterOwnerCharacter;
+	if (BlasterOwnerCharacter && BlasterOwnerCharacter->GetCombat() && IsFull())
+	{
+		BlasterOwnerCharacter->GetCombat()->JumpToShotgunEnd();
+	}
+	SetHUDAmmo();
 }
 
-bool AWeapon::IsFull()
+void AWeapon::SetHUDAmmo()
 {
-	return Ammo == MagCapacity;
+	BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : BlasterOwnerCharacter;
+	if (BlasterOwnerCharacter)
+	{
+		BlasterOwnerController = BlasterOwnerController == nullptr ? Cast<ABlasterPlayerController>(BlasterOwnerCharacter->Controller) : BlasterOwnerController;
+		if (BlasterOwnerController)
+		{
+			BlasterOwnerController->SetHUDWeaponAmmo(Ammo);
+		}
+	}
 }
+
+#pragma endregion
+
+#pragma region Helpers
+
+void AWeapon::EnableCustomDepth(bool bEnable)
+{
+	if (WeaponMesh)
+	{
+		WeaponMesh->SetRenderCustomDepth(bEnable);
+	}
+}
+
+#pragma endregion
+
+
+
+
+
+
+
+
+
+
+
+
+

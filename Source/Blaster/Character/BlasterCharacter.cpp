@@ -84,7 +84,7 @@ void ABlasterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SpawnDefaultWeapon();
+	// SpawnDefaultWeapon();
 	UpdateHUDAmmo();
 	UpdateHUDHealth();
 	UpdateHUDShield();
@@ -374,18 +374,7 @@ void ABlasterCharacter::EquipButtonPressed()
 {
 	if (Combat)
 	{
-		// 服务器上直接调用 EquipWeapon
-		if (HasAuthority())
-		{
-			Combat->EquipWeapon(OverlappingWeapon);
-			// GEngine->AddOnScreenDebugMessage(-1, 20.f, FColor::Green, TEXT("Server Equip"));
-		}
-		// 客户端上调用 ServerEquipButtonPressed
-		else
-		{
-			ServerEquipButtonPressed();
-			// GEngine->AddOnScreenDebugMessage(-1, 20.f, FColor::Red, TEXT("Client Equip"));
-		}
+		ServerEquipButtonPressed();
 	}
 }
 
@@ -393,7 +382,14 @@ void ABlasterCharacter::ServerEquipButtonPressed_Implementation()
 {
 	if (Combat)
 	{
-		Combat->EquipWeapon(OverlappingWeapon);
+		if (OverlappingWeapon)
+		{
+			Combat->EquipWeapon(OverlappingWeapon);
+		}
+		else if (Combat->ShouldSwapWeapons())
+		{
+			Combat->SwapWeapons();
+		}
 	}
 }
 
@@ -757,15 +753,18 @@ void ABlasterCharacter::Elim()
 	// 掉落武器
 	if (Combat && Combat->EquippedWeapon)
 	{
-		// 销毁初始武器
-		if (Combat->EquippedWeapon->bDestroyWeapon)
-		{
-			Combat->EquippedWeapon->Destroy();
-		}
-		else
-		{
-			Combat->EquippedWeapon->Dropped();
-		}
+		// // 销毁初始武器
+		// if (Combat->EquippedWeapon->bDestroyWeapon)
+		// {
+		// 	Combat->EquippedWeapon->Destroy();
+		// }
+		// else
+		// {
+		// 	Combat->EquippedWeapon->Dropped();
+		// }
+		if (Combat->EquippedWeapon) Combat->EquippedWeapon->Dropped();
+		if (Combat->SecondaryWeapon) Combat->SecondaryWeapon->Dropped();
+		
 	}
 	// 由于 Hit 只发生在服务器上，因此 Elim 也只会发生在服务器上
 	MulticastElim();
@@ -908,18 +907,30 @@ void ABlasterCharacter::HideCameraIfCharacterClose()
 		// 隐藏角色
 		GetMesh()->SetVisibility(false);
 		// 隐藏武器
-		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+		if (Combat)
 		{
-			// 在 CombatComponent 中已经设置了武器的拥有者为拾取的玩家
-			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;  // 设置为拥有者不可见
+			if (Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh()) {
+				// 在 CombatComponent 中已经设置了武器的拥有者为拾取的玩家
+				Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;  // 设置为拥有者不可见
+			}	
+			if (Combat->SecondaryWeapon && Combat->SecondaryWeapon->GetWeaponMesh()) {
+				Combat->SecondaryWeapon->GetWeaponMesh()->bOwnerNoSee = true;
+			}
 		}
 	}
 	else
 	{
 		GetMesh()->SetVisibility(true);
-		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+		if (Combat)
 		{
-			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
+			if (Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+			{
+				Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
+			}
+			if (Combat->SecondaryWeapon && Combat->SecondaryWeapon->GetWeaponMesh())
+			{
+				Combat->SecondaryWeapon->GetWeaponMesh()->bOwnerNoSee = false;
+			}
 		}
 	}
 }
