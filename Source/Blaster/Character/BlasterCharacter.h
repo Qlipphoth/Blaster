@@ -270,6 +270,8 @@ public:	// Getter & Setter
 	FORCEINLINE UAnimMontage* GetReloadMontage() const { return ReloadMontage; }
 	FORCEINLINE UStaticMeshComponent* GetAttachedGrenade() const { return AttachedGrenade; }
 	FORCEINLINE UBuffComponent* GetBuff() const { return Buff; }
+	
+	bool IsLocallyReloading();
 
 public:	
 

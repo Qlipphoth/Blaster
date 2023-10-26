@@ -89,7 +89,6 @@ void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AWeapon, WeaponState);
-	DOREPLIFETIME(AWeapon, Ammo);
 }
 
 #pragma endregion
@@ -276,11 +275,7 @@ void AWeapon::Fire(const FVector& HitTarget)
 			}
 		}
 	}
-
-	if (HasAuthority())
-	{
-		SpendRound();
-	}
+	SpendRound();
 }
 
 FVector AWeapon::TraceEndWithScatter(const FVector& HitTarget)
@@ -318,23 +313,46 @@ void AWeapon::SpendRound()
 {
 	Ammo = FMath::Clamp(Ammo - 1, 0, MagCapacity);
 	SetHUDAmmo();
+	if (HasAuthority())
+	{
+		// 向客户端同步 Ammo
+		ClientUpdateAmmo(Ammo);
+	}
+	else
+	{
+		// 如果不是服务器调用，就增加 Sequence 表示未经同步的 Ammo 数量
+		++Sequence;
+	}
 }
 
-void AWeapon::AddAmmo(int32 AmmoToAdd)
+void AWeapon::ClientUpdateAmmo_Implementation(int32 ServerAmmo)
 {
-	Ammo = FMath::Clamp(Ammo + AmmoToAdd, 0, MagCapacity);
+	if (HasAuthority()) return;
+	Ammo = ServerAmmo;  // 客户端同步 Ammo
+	--Sequence;         // 未同步的 Ammo 数量减一
+	Ammo -= Sequence;   // 根据本地的 Sequence 值，减去未同步的 Ammo 数量，更正 Ammo
 	SetHUDAmmo();
 }
 
-void AWeapon::OnRep_Ammo()
+void AWeapon::ClientAddAmmo_Implementation(int32 AmmoToAdd)
 {
-	// 子弹装满了直接跳到最后
+	if (HasAuthority()) return;
+	Ammo = FMath::Clamp(Ammo + AmmoToAdd, 0, MagCapacity);
 	BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : BlasterOwnerCharacter;
 	if (BlasterOwnerCharacter && BlasterOwnerCharacter->GetCombat() && IsFull())
 	{
 		BlasterOwnerCharacter->GetCombat()->JumpToShotgunEnd();
 	}
 	SetHUDAmmo();
+}
+
+/// @brief 增加子弹，该函数只会在 Server 掉用
+/// @param AmmoToAdd 增加的子弹数量
+void AWeapon::AddAmmo(int32 AmmoToAdd)
+{
+	Ammo = FMath::Clamp(Ammo + AmmoToAdd, 0, MagCapacity);
+	SetHUDAmmo();
+	ClientAddAmmo(AmmoToAdd);
 }
 
 void AWeapon::SetHUDAmmo()

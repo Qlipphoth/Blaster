@@ -90,7 +90,7 @@ void UCombatComponent::OnRep_CombatState()
 	switch (CombatState)
 	{
 	case ECombatState::ECS_Reloading:
-		HandleReload();
+		if (Character && !Character->IsLocallyControlled()) HandleReload();
 		break;
 	case ECombatState::ECS_Unoccupied:
 		if (bFireButtonPressed)
@@ -128,6 +128,7 @@ void UCombatComponent::FireButtonPressed(bool bPressed)
 bool UCombatComponent::CanFire()
 {
 	if (EquippedWeapon == nullptr) return false;
+	if (bLocallyReloading) return false;
 	// if (!EquippedWeapon->IsEmpty() && 
 	// 	bCanFire && 
 	// 	CombatState == ECombatState::ECS_Reloading && 
@@ -435,6 +436,14 @@ void UCombatComponent::InterpFOV(float DeltaTime)
 	}
 }
 
+void UCombatComponent::OnRep_Aiming()
+{
+	if (Character && Character->IsLocallyControlled())
+	{
+		bAiming = bAimButtonPressed;
+	}
+}
+
 void UCombatComponent::SetAiming(bool bIsAiming)
 {
 	if (Character == nullptr || EquippedWeapon == nullptr) return;
@@ -453,6 +462,7 @@ void UCombatComponent::SetAiming(bool bIsAiming)
 		}
 		Character->ShowSniperScopeWidget(bIsAiming);
 	}
+	if (Character->IsLocallyControlled()) bAimButtonPressed = bIsAiming;
 }
 
 void UCombatComponent::ServerSetAiming_Implementation(bool bIsAiming)
@@ -470,11 +480,15 @@ void UCombatComponent::ServerSetAiming_Implementation(bool bIsAiming)
 
 void UCombatComponent::Reload()
 {
-	if (EquippedWeapon == nullptr) return;
-	if (EquippedWeapon->IsFull()) return;
+	if (EquippedWeapon == nullptr || 
+		EquippedWeapon->IsFull() || 
+		bLocallyReloading) return;
+	
 	if (CarriedAmmo > 0 && CombatState == ECombatState::ECS_Unoccupied)
 	{
-		ServerReload();
+		HandleReload();  // 本地先播放 Reload 动画
+		ServerReload();  // Server 端执行，状态再同步给其他客户端
+		bLocallyReloading = true;
 	}
 }
 
@@ -482,17 +496,21 @@ void UCombatComponent::ServerReload_Implementation()
 {
 	if (Character == nullptr || EquippedWeapon == nullptr) return;
 	CombatState = ECombatState::ECS_Reloading;
-	HandleReload();
+	if (!Character->IsLocallyControlled()) HandleReload();
 }
 
 void UCombatComponent::HandleReload()
 {
-	Character->PlayReloadMontage();
+	if (Character)
+	{
+		Character->PlayReloadMontage();
+	}
 }
 
 void UCombatComponent::FinishReloading()
 {
 	if (Character == nullptr) return;
+	bLocallyReloading = false;
 	if (Character->HasAuthority())
 	{
 		CombatState = ECombatState::ECS_Unoccupied;

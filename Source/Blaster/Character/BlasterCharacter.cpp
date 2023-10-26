@@ -937,6 +937,12 @@ void ABlasterCharacter::HideCameraIfCharacterClose()
 	}
 }
 
+bool ABlasterCharacter::IsLocallyReloading()
+{
+	if (Combat == nullptr) return false;
+	return Combat->bLocallyReloading;
+}
+
 #pragma endregion
 
 

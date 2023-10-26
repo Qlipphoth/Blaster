@@ -90,6 +90,14 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		// bTransformRightHand = BlasterCharacter->GetCombatState() != ECombatState::ECS_Reloading;
 
 		bUseFABRIK = BlasterCharacter->GetCombatState() == ECombatState::ECS_Unoccupied;
+
+		// 根据本地是否正处于 Reload 状态来决定是否使用 FAIBRIK
+		if (BlasterCharacter->IsLocallyControlled() && 
+			BlasterCharacter->GetCombatState() != ECombatState::ECS_ThrowingGrenade)
+		{
+			bUseFABRIK = !BlasterCharacter->IsLocallyReloading();
+		}
+
 		bUseAimOffsets = BlasterCharacter->GetCombatState() == ECombatState::ECS_Unoccupied;
 		bTransformRightHand = BlasterCharacter->GetCombatState() == ECombatState::ECS_Unoccupied;
 	}
