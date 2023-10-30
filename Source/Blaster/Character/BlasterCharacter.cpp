@@ -22,7 +22,9 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Blaster/PlayerState/BlasterPlayerState.h"
 #include "Blaster/Weapon/WeaponTypes.h"
-#include "Components/BoxComponent.h"
+#include "Components/SphereComponent.h"
+#include "Blaster/BlasterComponents/LagCompensationComponent.h"
+
 
 #pragma region Initialization
 
@@ -81,6 +83,7 @@ ABlasterCharacter::ABlasterCharacter()
 	AttachedGrenade->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	SetHitBoxes();
+	LagCompensation = CreateDefaultSubobject<ULagCompensationComponent>(TEXT("LagCompensation"));
 }
 
 void ABlasterCharacter::BeginPlay()
@@ -134,6 +137,14 @@ void ABlasterCharacter::PostInitializeComponents()
 			GetCharacterMovement()->MaxWalkSpeedCrouched
 		);
 		Buff->SetInitialJumpVelocity(GetCharacterMovement()->JumpZVelocity);
+	}
+	if (LagCompensation)
+	{
+		LagCompensation->Character = this;
+		if (Controller)
+		{
+			LagCompensation->Controller = Cast<ABlasterPlayerController>(Controller);
+		}
 	}
 }
 
@@ -909,13 +920,28 @@ void ABlasterCharacter::SetHitBoxes()
 	* Hit boxes for server-side rewind
 	*/
 
-	head = CreateDefaultSubobject<UCapsuleComponent>(TEXT("head"));
-	head->SetupAttachment(GetMesh(), FName("head"));
-	head->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	head1 = CreateDefaultSubobject<USphereComponent>(TEXT("head"));
+	head1->SetupAttachment(GetMesh(), FName("head"));
+	head1->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HitCollisionBoxes.Add(FName("head"), head1);	
 
-	spine_02 = CreateDefaultSubobject<UCapsuleComponent>(TEXT("spine_02"));
-	spine_02->SetupAttachment(GetMesh(), FName("spine_02"));
-	spine_02->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// spine_01 = CreateDefaultSubobject<USphereComponent>(TEXT("spine_01"));
+	// spine_01->SetupAttachment(GetMesh(), FName("spine_01"));
+	// spine_01->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// spine1_02 = CreateDefaultSubobject<USphereComponent>(TEXT("spine_02"));
+	// spine1_02->SetupAttachment(GetMesh(), FName("spine_02"));
+	// spine1_02->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	spine_03 = CreateDefaultSubobject<USphereComponent>(TEXT("spine_03"));
+	spine_03->SetupAttachment(GetMesh(), FName("spine_03"));
+	spine_03->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HitCollisionBoxes.Add(FName("spine_03"), spine_03);
+
+	pelvis = CreateDefaultSubobject<USphereComponent>(TEXT("pelvis"));
+	pelvis->SetupAttachment(GetMesh(), FName("pelvis"));
+	pelvis->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HitCollisionBoxes.Add(FName("pelvis"), pelvis);
 
 	// head = CreateDefaultSubobject<UBoxComponent>(TEXT("head"));
 	// head->SetupAttachment(GetMesh(), FName("head"));

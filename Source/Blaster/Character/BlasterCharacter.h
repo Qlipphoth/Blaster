@@ -50,6 +50,10 @@ public:
 
 	void SpawnDefaultWeapon();
 
+	UPROPERTY()
+	// TMap<FName, class UBoxComponent*> HitCollisionBoxes;
+	TMap<FName, class USphereComponent*> HitCollisionBoxes;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -83,6 +87,11 @@ protected:
 	bool bInvincible = false;
 
 private:
+
+	/** 
+	* Blaster components
+	*/
+
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	class USpringArmComponent* CameraBoom;
 
@@ -97,6 +106,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere)
 	class UBuffComponent* Buff;
+
+	UPROPERTY(VisibleAnywhere)
+	class ULagCompensationComponent* LagCompensation;
 
 	UFUNCTION(Server, Reliable)
 	void ServerEquipButtonPressed();
@@ -246,13 +258,20 @@ protected:  // Hit boxes used for server-side rewind
 	void SetHitBoxes();
 
 	UPROPERTY(EditAnywhere)
-	class UCapsuleComponent* head;
+	class USphereComponent* head1;
 
 	UPROPERTY(EditAnywhere)
-	class UCapsuleComponent* spine_02;
+	class USphereComponent* spine_01;
 
-	// UPROPERTY(EditAnywhere)
-	// class UBoxComponent* head;
+	UPROPERTY(EditAnywhere)
+	class USphereComponent* spine1_02;
+
+	UPROPERTY(EditAnywhere)
+	class USphereComponent* spine_03;
+
+	UPROPERTY(EditAnywhere)
+	class USphereComponent* pelvis;
+
 
 	// UPROPERTY(EditAnywhere)
 	// UBoxComponent* pelvis;
@@ -336,6 +355,8 @@ public:	// Getter & Setter
 	FORCEINLINE UBuffComponent* GetBuff() const { return Buff; }
 	
 	bool IsLocallyReloading();
+
+	FORCEINLINE ULagCompensationComponent* GetLagCompensation() const { return LagCompensation; }
 
 public:	
 
