@@ -4,6 +4,8 @@
 #include "Shotgun.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Blaster/Character/BlasterCharacter.h"
+#include "Blaster/PlayerController/BlasterPlayerController.h"
+#include "Blaster/BlasterComponents/LagCompensationComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "particles/ParticleSystemComponent.h"
 #include "Sound/SoundCue.h"
@@ -67,20 +69,49 @@ void AShotgun::FireShotgun(const TArray<FVector_NetQuantize>& HitTargets)
 			}			
 		}
 
+		// 存储所有被击中的角色
+		TArray<ABlasterCharacter*> HitCharacters;
+
 		for (auto HitPair : HitMap)
 		{
-			if (HitPair.Key && HasAuthority() && InstigatorController)
+			if (HitPair.Key && InstigatorController)
 			{
-				UGameplayStatics::ApplyDamage(
-					HitPair.Key,  // Character that was hit
-					Damage * HitPair.Value,  // Multiply Damage by number of times hit
-					InstigatorController,
-					this,
-					UDamageType::StaticClass()
-				);
+				if (HasAuthority() && !bUseServerSideRewind)
+				{
+					UGameplayStatics::ApplyDamage(
+						HitPair.Key, // Character that was hit
+						Damage * HitPair.Value, // Multiply Damage by number of times hit
+						InstigatorController,
+						this,
+						UDamageType::StaticClass()
+					);
+				}
+
+				HitCharacters.Add(HitPair.Key);
 			}
 		}
 
+		// 客户端调用并且开启了服务器端回滚
+		if (!HasAuthority() && bUseServerSideRewind)
+		{
+			BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? 
+				Cast<ABlasterCharacter>(OwnerPawn) : BlasterOwnerCharacter;
+			BlasterOwnerController = BlasterOwnerController == nullptr ? 
+				Cast<ABlasterPlayerController>(InstigatorController) : BlasterOwnerController;
+			if (BlasterOwnerController && 
+				BlasterOwnerCharacter && 
+				BlasterOwnerCharacter->GetLagCompensation() && 
+				BlasterOwnerCharacter->IsLocallyControlled())
+			{
+				// 通过服务器回滚计算伤害
+				BlasterOwnerCharacter->GetLagCompensation()->ShotgunServerScoreRequest(
+					HitCharacters,
+					Start,
+					HitTargets,
+					BlasterOwnerController->GetServerTime() - BlasterOwnerController->SingleTripTime
+				);
+			}
+		}
 	}
 }
 

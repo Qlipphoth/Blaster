@@ -35,6 +35,8 @@ public:
 	void HandleCooldown();
 	void ShowWinner();
 
+	float SingleTripTime = 0.f;
+
 protected:
 	virtual void BeginPlay() override;
 	void SetHUDTime();

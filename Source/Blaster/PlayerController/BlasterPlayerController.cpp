@@ -170,7 +170,10 @@ void ABlasterPlayerController::ClientReportServerTime_Implementation(float TimeO
 	
 	// RTT / 2 可以近似认为是消息从服务器发送到客户端所需要的时间
 	// 这样一来，客户端在收到服务器的消息时服务器的时间就可以近似等于：服务器传来的时间 + RTT / 2
-	float CurrentServerTime = TimeServerReceivedClientRequest + (0.5f * RoundTripTime);
+	// float CurrentServerTime = TimeServerReceivedClientRequest + (0.5f * RoundTripTime);
+	SingleTripTime = 0.5f * RoundTripTime;
+	float CurrentServerTime = TimeServerReceivedClientRequest + SingleTripTime;
+
 	// 服务器端时间与客户端时间的差值
 	ClientServerDelta = CurrentServerTime - GetWorld()->GetTimeSeconds();
 }
