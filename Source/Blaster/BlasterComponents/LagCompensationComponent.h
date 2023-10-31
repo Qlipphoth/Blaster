@@ -86,11 +86,12 @@ public:
 		float HitTime
 	);
 
-	FShotgunServerSideRewindResult ShotgunServerSideRewind(
+	void ShotgunServerSideRewind(
 		const TArray<ABlasterCharacter*>& HitCharacters, 
 		const FVector_NetQuantize& TraceStart, 
 		const TArray<FVector_NetQuantize>& HitLocations, 
-		float HitTime
+		float HitTime,
+		FShotgunServerSideRewindResult& OutShotgunResult
 	);
 
 	UFUNCTION(Server, Reliable)
@@ -138,10 +139,11 @@ protected:
 	* Shotgun
 	*/
 
-	FShotgunServerSideRewindResult ShotgunConfirmHit(
+	void ShotgunConfirmHit(
 		const TArray<FFramePackage>& FramePackages,
 		const FVector_NetQuantize& TraceStart,
-		const TArray<FVector_NetQuantize>& HitLocations
+		const TArray<FVector_NetQuantize>& HitLocations,
+		FShotgunServerSideRewindResult& OutShotgunResult
 	);
 
 private:

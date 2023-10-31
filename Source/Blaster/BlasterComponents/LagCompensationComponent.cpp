@@ -303,12 +303,19 @@ FServerSideRewindResult ULagCompensationComponent::ConfirmHit(
 
 #pragma region ShotgunRewind
 
+/// @brief 客户端向服务器发起的 Shotgun 倒带伤害判定请求，服务器根据客户端的 HitTime 进行 Rewind Hit 检测，判定成功则造成伤害
+/// @param HitCharacters 被击中角色列表
+/// @param TraceStart 射击起点
+/// @param HitLocations 射击终点列表
+/// @param HitTime 客户端射击时间
 void ULagCompensationComponent::ShotgunServerScoreRequest_Implementation(
 	const TArray<ABlasterCharacter*>& HitCharacters, const FVector_NetQuantize& TraceStart, 
 	const TArray<FVector_NetQuantize>& HitLocations, float HitTime)
 {
-	FShotgunServerSideRewindResult Confirm = 
-		ShotgunServerSideRewind(HitCharacters, TraceStart, HitLocations, HitTime);
+	FShotgunServerSideRewindResult Confirm;
+	
+	// Confirm 以引用的方式传入，函数内部会修改 Confirm 的值
+	ShotgunServerSideRewind(HitCharacters, TraceStart, HitLocations, HitTime, Confirm);
 
 	// 如果组件的 Character 为空，或者 Character 的武器为空，直接返回
 	if (Character == nullptr || Character->GetEquippedWeapon() == nullptr) return;
@@ -340,9 +347,16 @@ void ULagCompensationComponent::ShotgunServerScoreRequest_Implementation(
 	}
 }
 
-FShotgunServerSideRewindResult ULagCompensationComponent::ShotgunServerSideRewind(
+/// @brief Shotgun 的服务器端倒带算法，根据客户端的 HitTime，从 FrameHistory 中找到对应的帧信息，然后进行 ConfirmHit 检测
+/// @param HitCharacters 被击中角色列表
+/// @param TraceStart  射击起点
+/// @param HitLocations 射击终点列表
+/// @param HitTime    客户端射击时间
+/// @param OutShotgunResult 以引用方式传入的结构体，用于保存 Shotgun 的命中结果
+void ULagCompensationComponent::ShotgunServerSideRewind(
 	const TArray<ABlasterCharacter*>& HitCharacters, const FVector_NetQuantize& TraceStart, 
-	const TArray<FVector_NetQuantize>& HitLocations, float HitTime)
+	const TArray<FVector_NetQuantize>& HitLocations, float HitTime,
+	FShotgunServerSideRewindResult& OutShotgunResult)
 {
 	TArray<FFramePackage> FramesToCheck;
 	for (ABlasterCharacter* HitCharacter : HitCharacters)
@@ -350,21 +364,27 @@ FShotgunServerSideRewindResult ULagCompensationComponent::ShotgunServerSideRewin
 		FramesToCheck.Add(GetFrameToCheck(HitCharacter, HitTime));
 	}
 
-	// TODO: 这里应该改成引用传递
-	return ShotgunConfirmHit(FramesToCheck, TraceStart, HitLocations);
+	ShotgunConfirmHit(FramesToCheck, TraceStart, HitLocations, OutShotgunResult);
 }
 
-FShotgunServerSideRewindResult ULagCompensationComponent::ShotgunConfirmHit(
+/// @brief 根据传入的 FramePackages 进行 Shotgun Rewind Hit 检测，判断是否击中
+/// @param FramePackages Rewind 后得到的帧信息列表
+/// @param TraceStart 射击起点
+/// @param HitLocations 射击终点列表
+/// @param OutShotgunResult 以引用方式传入的结构体，用于保存 Shotgun 的命中结果
+void ULagCompensationComponent::ShotgunConfirmHit(
 	const TArray<FFramePackage>& FramePackages, const FVector_NetQuantize& TraceStart, 
-	const TArray<FVector_NetQuantize>& HitLocations)
+	const TArray<FVector_NetQuantize>& HitLocations,
+	FShotgunServerSideRewindResult& OutShotgunResult)
 {
 	for (auto& Frame : FramePackages)
 	{
-		if (Frame.Character == nullptr) return FShotgunServerSideRewindResult();
+		if (Frame.Character == nullptr) return;
 	}
 
 	// 保存命中结果，FShotgunServerSideRewindResult 为一个结构体，包含了 HeadShots 和 BodyShots 两个 TMap
-	FShotgunServerSideRewindResult ShotgunResult;
+	// FShotgunServerSideRewindResult ShotgunResult;
+
 	// 缓存所有 FramePakcages 中角色的 HitBoxes 信息
 	TArray<FFramePackage> CurrentFrames;
 	
@@ -408,13 +428,13 @@ FShotgunServerSideRewindResult ULagCompensationComponent::ShotgunConfirmHit(
 			if (BlasterCharacter)
 			{
 				// 将 headshot 的结果保存在 ShotgunResult 结构体中
-				if (ShotgunResult.HeadShots.Contains(BlasterCharacter))
+				if (OutShotgunResult.HeadShots.Contains(BlasterCharacter))
 				{
-					ShotgunResult.HeadShots[BlasterCharacter]++;
+					OutShotgunResult.HeadShots[BlasterCharacter]++;
 				}
 				else
 				{
-					ShotgunResult.HeadShots.Emplace(BlasterCharacter, 1);
+					OutShotgunResult.HeadShots.Emplace(BlasterCharacter, 1);
 				}
 			}
 		}
@@ -452,13 +472,13 @@ FShotgunServerSideRewindResult ULagCompensationComponent::ShotgunConfirmHit(
 			if (BlasterCharacter)
 			{
 				// 将 bodyshot 的结果保存在 ShotgunResult 结构体中
-				if (ShotgunResult.BodyShots.Contains(BlasterCharacter))
+				if (OutShotgunResult.BodyShots.Contains(BlasterCharacter))
 				{
-					ShotgunResult.BodyShots[BlasterCharacter]++;
+					OutShotgunResult.BodyShots[BlasterCharacter]++;
 				}
 				else
 				{
-					ShotgunResult.BodyShots.Emplace(BlasterCharacter, 1);
+					OutShotgunResult.BodyShots.Emplace(BlasterCharacter, 1);
 				}
 			}
 		}
@@ -471,7 +491,6 @@ FShotgunServerSideRewindResult ULagCompensationComponent::ShotgunConfirmHit(
 		EnableCharacterMeshCollision(Frame.Character, ECollisionEnabled::QueryAndPhysics);
 	}
 
-	return ShotgunResult;
 }
 
 #pragma endregion
