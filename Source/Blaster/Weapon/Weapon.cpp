@@ -207,7 +207,10 @@ void AWeapon::OnEquipped()
 	// FString OwnerName = BlasterOwnerCharacter ? BlasterOwnerCharacter->GetName() : TEXT("nullptr");
 	// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Owner: %s"), *OwnerName));
 	
-	if (BlasterOwnerCharacter)
+	// NOTE: 此处可以添加条件：&& bUseServerSideRewind 以保证只有开启了 SSR 的武器才会绑定事件
+	// 但实际上 OnPingTooHigh 也会改变这一参数，因此欠妥，合理的做法是分出两个变量
+	// bInitUseServerSideRewind 和 bUseServerSideRewind，前者用于初始化，后者用于实际使用
+	if (BlasterOwnerCharacter && bInitUseServerSideRewind)
 	{
 		BlasterOwnerController = BlasterOwnerController == nullptr ? Cast<ABlasterPlayerController>(BlasterOwnerCharacter->Controller) : BlasterOwnerController;
 		if (BlasterOwnerController && HasAuthority() && !BlasterOwnerController->HighPingDelegate.IsBound())

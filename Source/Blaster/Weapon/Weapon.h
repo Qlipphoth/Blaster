@@ -158,10 +158,10 @@ private:
 	UFUNCTION()
 	virtual void OnRep_WeaponState();
 
-	UPROPERTY(VisibleAnywhere, Category = "Weapon Properties")
+	UPROPERTY(VisibleAnywhere)
 	class UWidgetComponent* PickupWidget;
 
-	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
+	UPROPERTY(EditAnywhere)
 	class UAnimationAsset* FireAnimation;
 
 	UPROPERTY(EditAnywhere)
@@ -212,7 +212,10 @@ public:
 // ====================== Rewind ====================== //
 
 protected:
-	UPROPERTY(Replicated, EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
+	bool bInitUseServerSideRewind = false;
+
+	UPROPERTY(Replicated, visibleAnywhere, Category = "Weapon Properties")
 	bool bUseServerSideRewind = false;
 
 public:
