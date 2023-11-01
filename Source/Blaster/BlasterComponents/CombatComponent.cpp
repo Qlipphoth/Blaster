@@ -756,10 +756,17 @@ void UCombatComponent::EquipPrimaryWeapon(AWeapon* WeaponToEquip)
 	if (WeaponToEquip == nullptr) return;
 	DropEquippedWeapon();
 	EquippedWeapon = WeaponToEquip;
-	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
+	
 	AttachActorToRightHand(EquippedWeapon);
 	// AACtor 的 Owner 属性被标记为 Replicated，当 Owner 属性发生变化时，会调用 OnRep_Owner
 	EquippedWeapon->SetOwner(Character);
+
+	// 注意这里一定要先 SetOwner 再 SetWeaponState，这样才能根据 Owner 正确绑定事件
+	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
+
+	// FString CharacterName = Character == nullptr ? "nullptr" : Character->GetName();
+	// GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, FString::Printf(TEXT("EquipPrimaryWeapon: %s"), *CharacterName));
+
 	EquippedWeapon->SetHUDAmmo();
 	UpdateCarriedAmmo();
 	PlayEquipWeaponSound(WeaponToEquip);

@@ -100,6 +100,11 @@ void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 void AWeapon::OnRep_Owner()
 {
 	Super::OnRep_Owner();
+	
+	// GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Green, TEXT("Weapon OnRep_Owner"));
+	// FString OwnerName = GetOwner() ? GetOwner()->GetName() : TEXT("nullptr");
+	// GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Green, FString::Printf(TEXT("Owner: %s"), *OwnerName));
+
 	if (Owner == nullptr)
 	{
 		BlasterOwnerCharacter = nullptr;
@@ -198,12 +203,16 @@ void AWeapon::OnEquipped()
 
 	// 绑定高 Ping 事件，不使用 Rewind
 	BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : BlasterOwnerCharacter;
+	
+	// FString OwnerName = BlasterOwnerCharacter ? BlasterOwnerCharacter->GetName() : TEXT("nullptr");
+	// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Owner: %s"), *OwnerName));
+	
 	if (BlasterOwnerCharacter)
 	{
 		BlasterOwnerController = BlasterOwnerController == nullptr ? Cast<ABlasterPlayerController>(BlasterOwnerCharacter->Controller) : BlasterOwnerController;
 		if (BlasterOwnerController && HasAuthority() && !BlasterOwnerController->HighPingDelegate.IsBound())
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("Bind High Ping Delegate"));
+			// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("Bind High Ping Delegate"));
 			BlasterOwnerController->HighPingDelegate.AddDynamic(this, &AWeapon::OnPingTooHigh);
 		}
 	}

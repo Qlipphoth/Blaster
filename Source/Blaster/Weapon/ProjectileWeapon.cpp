@@ -97,9 +97,6 @@ void AProjectileWeapon::Fire(const FVector& HitTarget)
 			}
 		}
 
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, 
-			FString::Printf(TEXT("UseServerSideRewind: %d"), bUseServerSideRewind));
-
 		// 统一将 Projectile 的 bUseServerSideRewind 设置为 Weapon 的 bUseServerSideRewind
 		if (SpawnedProjectile) SpawnedProjectile->bUseServerSideRewind = bUseServerSideRewind;
 	}

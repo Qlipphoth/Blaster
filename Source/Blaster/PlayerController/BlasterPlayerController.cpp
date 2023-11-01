@@ -583,7 +583,6 @@ void ABlasterPlayerController::CheckPing(float DeltaTime)
 			}
 			else
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("Ping is normal"));
 				ServerReportPingStatus(false);
 			}
 		}
@@ -606,7 +605,6 @@ void ABlasterPlayerController::CheckPing(float DeltaTime)
 // Is the ping too high?
 void ABlasterPlayerController::ServerReportPingStatus_Implementation(bool bHighPing)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Set Ping"));
 	HighPingDelegate.Broadcast(bHighPing);
 }
 
