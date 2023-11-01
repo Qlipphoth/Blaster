@@ -8,6 +8,7 @@
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "Blaster/Blaster.h"
 
 
 #pragma region Initialization
@@ -86,7 +87,7 @@ void ULagCompensationComponent::SaveFramePackage(FFramePackage& OutPackage)
 #pragma endregion
 
 
-#pragma region ServerSideRewind
+#pragma region HitScanWeaponRewind
 
 /// @brief 客户端向服务器发起的倒带伤害判定请求，服务器根据客户端的 HitTime 进行 Rewind Hit 检测，判定成功则造成伤害
 /// @param HitCharacter 被击中角色
@@ -240,11 +241,11 @@ FServerSideRewindResult ULagCompensationComponent::ConfirmHit(
 	EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::NoCollision);
 
 	// Enable collision for the head first
-	// UBoxComponent* HeadBox = HitCharacter->HitCollisionBoxes[FName("head")];
+	// USphereComponent* HeadBox = HitCharacter->HitCollisionBoxes[FName("head")];
 	HeadBox = HitCharacter->HitCollisionBoxes[FName("head")];
 	
 	HeadBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	HeadBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+	HeadBox->SetCollisionResponseToChannel(ECC_HitBox, ECollisionResponse::ECR_Block);
 
 	FHitResult ConfirmHitResult;
 	const FVector TraceEnd = TraceStart + (HitLocation - TraceStart) * 1.25f;
@@ -255,11 +256,23 @@ FServerSideRewindResult ULagCompensationComponent::ConfirmHit(
 			ConfirmHitResult,
 			TraceStart,
 			TraceEnd,
-			ECollisionChannel::ECC_Visibility
+			ECC_HitBox
 		);
 		// we hit the head, return early
 		if (ConfirmHitResult.bBlockingHit) 
 		{
+
+			if (ConfirmHitResult.Component.IsValid())
+			{
+				// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Hit Head"));
+				USphereComponent* Box = Cast<USphereComponent>(ConfirmHitResult.Component);
+				if (Box)
+				{
+					DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
+						Box->GetScaledSphereRadius(), 8, FColor::Red, false, 8.f);
+				}
+			}
+
 			ResetHitBoxes(HitCharacter, CurrentFrame);
 			EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::QueryAndPhysics);
 			return FServerSideRewindResult{ true, true };
@@ -273,17 +286,29 @@ FServerSideRewindResult ULagCompensationComponent::ConfirmHit(
 				{
 					HitBoxPair.Value->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 					HitBoxPair.Value->SetCollisionResponseToChannel(
-						ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+						ECC_HitBox, ECollisionResponse::ECR_Block);
 				}
 			}
 			World->LineTraceSingleByChannel(
 				ConfirmHitResult,
 				TraceStart,
 				TraceEnd,
-				ECollisionChannel::ECC_Visibility
+				ECC_HitBox
 			);
 			if (ConfirmHitResult.bBlockingHit)
 			{
+
+				if (ConfirmHitResult.Component.IsValid())
+				{
+					// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Hit Body"));
+					USphereComponent* Box = Cast<USphereComponent>(ConfirmHitResult.Component);
+					if (Box)
+					{
+						DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
+							Box->GetScaledSphereRadius(), 8, FColor::Blue, false, 8.f);
+					}
+				}
+
 				ResetHitBoxes(HitCharacter, CurrentFrame);
 				EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::QueryAndPhysics);
 				return FServerSideRewindResult{ true, false };
@@ -405,8 +430,7 @@ void ULagCompensationComponent::ShotgunConfirmHit(
 		// Enable collision for the head first
 		HeadBox = Frame.Character->HitCollisionBoxes[FName("head")];
 		HeadBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-		HeadBox->SetCollisionResponseToChannel(
-			ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+		HeadBox->SetCollisionResponseToChannel(ECC_HitBox, ECollisionResponse::ECR_Block);
 	}
 
 	UWorld* World = GetWorld();
@@ -422,11 +446,22 @@ void ULagCompensationComponent::ShotgunConfirmHit(
 				ConfirmHitResult,
 				TraceStart,
 				TraceEnd,
-				ECollisionChannel::ECC_Visibility
+				ECC_HitBox
 			);
 			ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(ConfirmHitResult.GetActor());
 			if (BlasterCharacter)
 			{
+
+				if (ConfirmHitResult.Component.IsValid())
+				{
+					USphereComponent* Box = Cast<USphereComponent>(ConfirmHitResult.Component);
+					if (Box)
+					{
+						DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
+							Box->GetScaledSphereRadius(), 8, FColor::Red, false, 8.f);
+					}
+				}
+
 				// 将 headshot 的结果保存在 ShotgunResult 结构体中
 				if (OutShotgunResult.HeadShots.Contains(BlasterCharacter))
 				{
@@ -448,7 +483,7 @@ void ULagCompensationComponent::ShotgunConfirmHit(
 			if (HitBoxPair.Value != nullptr)
 			{
 				HitBoxPair.Value->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-				HitBoxPair.Value->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+				HitBoxPair.Value->SetCollisionResponseToChannel(ECC_HitBox, ECollisionResponse::ECR_Block);
 			}
 		}
 		HeadBox = Frame.Character->HitCollisionBoxes[FName("head")];
@@ -466,11 +501,22 @@ void ULagCompensationComponent::ShotgunConfirmHit(
 				ConfirmHitResult,
 				TraceStart,
 				TraceEnd,
-				ECollisionChannel::ECC_Visibility
+				ECC_HitBox
 			);
 			ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(ConfirmHitResult.GetActor());
 			if (BlasterCharacter)
 			{
+
+				if (ConfirmHitResult.Component.IsValid())
+				{
+					USphereComponent* Box = Cast<USphereComponent>(ConfirmHitResult.Component);
+					if (Box)
+					{
+						DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
+							Box->GetScaledSphereRadius(), 8, FColor::Blue, false, 8.f);
+					}
+				}
+
 				// 将 bodyshot 的结果保存在 ShotgunResult 结构体中
 				if (OutShotgunResult.BodyShots.Contains(BlasterCharacter))
 				{
@@ -491,6 +537,127 @@ void ULagCompensationComponent::ShotgunConfirmHit(
 		EnableCharacterMeshCollision(Frame.Character, ECollisionEnabled::QueryAndPhysics);
 	}
 
+}
+
+#pragma endregion
+
+
+#pragma region ProjectileRewind
+
+void ULagCompensationComponent::ProjectileServerScoreRequest_Implementation(
+	ABlasterCharacter* HitCharacter, const FVector_NetQuantize& TraceStart, 
+	const FVector_NetQuantize100& InitialVelocity, float HitTime)
+{
+	FServerSideRewindResult Confirm = ProjectileServerSideRewind(
+		HitCharacter, TraceStart, InitialVelocity, HitTime);
+
+	if (Character && HitCharacter && Confirm.bHitConfirmed)
+	{
+		UGameplayStatics::ApplyDamage(
+			HitCharacter,
+			// 回滚造成的伤害依然是以服务器的版本来计算的
+			Character->GetEquippedWeapon()->GetDamage(),
+			Character->Controller,
+			Character->GetEquippedWeapon(),
+			UDamageType::StaticClass()
+		);
+	}
+}
+
+FServerSideRewindResult ULagCompensationComponent::ProjectileServerSideRewind(
+	ABlasterCharacter* HitCharacter, const FVector_NetQuantize& TraceStart, 
+	const FVector_NetQuantize100& InitialVelocity, float HitTime)
+{
+	FFramePackage FrameToCheck = GetFrameToCheck(HitCharacter, HitTime);
+	return ProjectileConfirmHit(FrameToCheck, HitCharacter, TraceStart, InitialVelocity, HitTime);
+}
+
+FServerSideRewindResult ULagCompensationComponent::ProjectileConfirmHit(
+	const FFramePackage& Package, ABlasterCharacter* HitCharacter, 
+	const FVector_NetQuantize& TraceStart, const FVector_NetQuantize100& InitialVelocity, float HitTime)
+{
+	FFramePackage CurrentFrame;
+	CacheBoxPositions(HitCharacter, CurrentFrame);
+	MoveBoxes(HitCharacter, Package);
+	EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::NoCollision);
+
+	// Enable collision for the head first
+	HeadBox = HitCharacter->HitCollisionBoxes[FName("head")];
+	HeadBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	HeadBox->SetCollisionResponseToChannel(ECC_HitBox, ECollisionResponse::ECR_Block);
+
+	// 设置 Projectile Path 的参数
+	FPredictProjectilePathParams PathParams;
+	SetProjectilePathParams(PathParams, TraceStart, InitialVelocity);
+
+	FPredictProjectilePathResult PathResult;
+	UGameplayStatics::PredictProjectilePath(this, PathParams, PathResult);
+
+	
+	if (PathResult.HitResult.bBlockingHit) 
+	{
+		if (PathResult.HitResult.Component.IsValid())
+		{
+			USphereComponent* Box = Cast<USphereComponent>(PathResult.HitResult.Component);
+			if (Box)
+			{
+				DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
+					Box->GetScaledSphereRadius(), 8, FColor::Red, false, 8.f);
+			}
+		}
+
+		ResetHitBoxes(HitCharacter, CurrentFrame);
+		EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::QueryAndPhysics);
+		return FServerSideRewindResult{ true, true };
+	}
+	else // we didn't hit the head; check the rest of the boxes
+	{
+		for (auto& HitBoxPair : HitCharacter->HitCollisionBoxes)
+		{
+			if (HitBoxPair.Value != nullptr)
+			{
+				HitBoxPair.Value->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+				HitBoxPair.Value->SetCollisionResponseToChannel(ECC_HitBox, ECollisionResponse::ECR_Block);
+			}
+		}
+
+		UGameplayStatics::PredictProjectilePath(this, PathParams, PathResult);
+		if (PathResult.HitResult.bBlockingHit)
+		{
+			if (PathResult.HitResult.Component.IsValid())
+			{
+				USphereComponent* Box = Cast<USphereComponent>(PathResult.HitResult.Component);
+				if (Box)
+				{
+					DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
+						Box->GetScaledSphereRadius(), 8, FColor::Blue, false, 8.f);
+				}
+			}
+
+			ResetHitBoxes(HitCharacter, CurrentFrame);
+			EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::QueryAndPhysics);
+			return FServerSideRewindResult{ true, false };
+		}
+	}
+
+	ResetHitBoxes(HitCharacter, CurrentFrame);
+	EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::QueryAndPhysics);
+	return FServerSideRewindResult{ false, false };
+}
+
+void ULagCompensationComponent::SetProjectilePathParams(FPredictProjectilePathParams& PathParams, 
+	const FVector_NetQuantize& TraceStart, const FVector_NetQuantize100& InitialVelocity)
+{
+	PathParams.bTraceWithCollision = true;
+	PathParams.MaxSimTime = MaxRecordTime;
+	PathParams.LaunchVelocity = InitialVelocity;
+	PathParams.StartLocation = TraceStart;
+	PathParams.SimFrequency = 15.f;
+	PathParams.ProjectileRadius = 5.f;
+	PathParams.TraceChannel = ECC_HitBox;
+	PathParams.ActorsToIgnore.Add(GetOwner());
+	PathParams.DrawDebugTime = 5.f;
+	PathParams.DrawDebugType = EDrawDebugTrace::ForDuration;
 }
 
 #pragma endregion

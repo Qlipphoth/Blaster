@@ -34,7 +34,9 @@ void AHitScanWeapon::Fire(const FVector& HitTarget)
 		ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(FireHit.GetActor());
 		if (BlasterCharacter && InstigatorController)
 		{
-			if (HasAuthority() && !bUseServerSideRewind)
+			// 如果开启了服务器回滚则不以客户端的伤害为准，转而由客户端发送 RPC
+			// !bUseServerSideRewind || OwnerPawn->IsLocallyControlled() 可以保证服务器控制的角色能够正常开火
+			if (HasAuthority() && (!bUseServerSideRewind || OwnerPawn->IsLocallyControlled()))
 			{
 				UGameplayStatics::ApplyDamage(
 					BlasterCharacter,
@@ -44,6 +46,8 @@ void AHitScanWeapon::Fire(const FVector& HitTarget)
 					UDamageType::StaticClass()
 				);
 			}
+			
+			// 客户端开启了回滚则以客户端发送的回滚请求得到的伤害为准
 			if (!HasAuthority() && bUseServerSideRewind)
 			{
 				BlasterOwnerCharacter = BlasterOwnerCharacter == 

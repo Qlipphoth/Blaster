@@ -922,7 +922,7 @@ void ABlasterCharacter::SetHitBoxes()
 
 	head1 = CreateDefaultSubobject<USphereComponent>(TEXT("head"));
 	head1->SetupAttachment(GetMesh(), FName("head"));
-	head1->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// head1->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HitCollisionBoxes.Add(FName("head"), head1);	
 
 	// spine_01 = CreateDefaultSubobject<USphereComponent>(TEXT("spine_01"));
@@ -935,13 +935,24 @@ void ABlasterCharacter::SetHitBoxes()
 
 	spine_03 = CreateDefaultSubobject<USphereComponent>(TEXT("spine_03"));
 	spine_03->SetupAttachment(GetMesh(), FName("spine_03"));
-	spine_03->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// spine_03->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HitCollisionBoxes.Add(FName("spine_03"), spine_03);
 
 	pelvis = CreateDefaultSubobject<USphereComponent>(TEXT("pelvis"));
 	pelvis->SetupAttachment(GetMesh(), FName("pelvis"));
-	pelvis->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// pelvis->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HitCollisionBoxes.Add(FName("pelvis"), pelvis);
+
+	for (auto Box : HitCollisionBoxes)
+	{
+		if (Box.Value)
+		{
+			Box.Value->SetCollisionObjectType(ECC_HitBox);
+			Box.Value->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+			Box.Value->SetCollisionResponseToChannel(ECC_HitBox, ECollisionResponse::ECR_Block);
+			Box.Value->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+	}
 
 	// head = CreateDefaultSubobject<UBoxComponent>(TEXT("head"));
 	// head->SetupAttachment(GetMesh(), FName("head"));

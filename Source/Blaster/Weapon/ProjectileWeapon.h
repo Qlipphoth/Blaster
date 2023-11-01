@@ -18,7 +18,13 @@ public:
 	virtual void Fire(const FVector& HitTarget) override;
 
 private:
+
+	// Replicate Projectile
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	TSubclassOf<class AProjectile> ProjectileClass;
+
+	// Non-replicated Projectile
+	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
+	TSubclassOf<AProjectile> ServerSideRewindProjectileClass;
 
 };

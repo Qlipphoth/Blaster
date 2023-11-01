@@ -565,17 +565,26 @@ void ABlasterPlayerController::StopHighPingWarning()
 
 void ABlasterPlayerController::CheckPing(float DeltaTime)
 {
+	if (HasAuthority()) return;
 	HighPingRunningTime += DeltaTime;
 	if (HighPingRunningTime > CheckPingFrequency)
 	{
 		PlayerState = PlayerState == nullptr ? GetPlayerState<APlayerState>() : PlayerState;
 		if (PlayerState)
 		{
+			GEngine->AddOnScreenDebugMessage(
+				-1, 5.f, FColor::Red, FString::Printf(TEXT("Ping: %d"), PlayerState->GetCompressedPing()));
 			// ping is compressed; it's actually ping / 4
 			if (PlayerState->GetCompressedPing() * 4 > HighPingThreshold) 
 			{
 				HighPingWarning();
 				PingAnimationRunningTime = 0.f;
+				ServerReportPingStatus(true);
+			}
+			else
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("Ping is normal"));
+				ServerReportPingStatus(false);
 			}
 		}
 		HighPingRunningTime = 0.f;
@@ -592,6 +601,13 @@ void ABlasterPlayerController::CheckPing(float DeltaTime)
 			StopHighPingWarning();
 		}
 	}
+}
+
+// Is the ping too high?
+void ABlasterPlayerController::ServerReportPingStatus_Implementation(bool bHighPing)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Set Ping"));
+	HighPingDelegate.Broadcast(bHighPing);
 }
 
 #pragma endregion

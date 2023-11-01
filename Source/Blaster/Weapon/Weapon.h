@@ -140,9 +140,6 @@ protected:
 	UPROPERTY(EditAnywhere)
 	float Damage = 20.f;
 
-	UPROPERTY(EditAnywhere)
-	bool bUseServerSideRewind = false;
-
 	UPROPERTY()
 	class ABlasterCharacter* BlasterOwnerCharacter;
 	UPROPERTY()
@@ -210,4 +207,16 @@ public:
 	FORCEINLINE int32 GetAmmo() const { return Ammo; }
 	FORCEINLINE int32 GetMagCapacity() const { return MagCapacity; }
 	FORCEINLINE float GetDamage() const { return Damage; }
+
+
+// ====================== Rewind ====================== //
+
+protected:
+	UPROPERTY(Replicated, EditAnywhere)
+	bool bUseServerSideRewind = false;
+
+public:
+	UFUNCTION()
+	void OnPingTooHigh(bool bPingTooHigh);
+
 };
