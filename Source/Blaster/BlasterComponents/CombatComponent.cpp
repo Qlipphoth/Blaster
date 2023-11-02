@@ -108,6 +108,14 @@ void UCombatComponent::OnRep_CombatState()
 			ShowAttachedGrenade(true);
 		}
 		break;
+	case ECombatState::ECS_SwappingWeapons:
+		if (Character && !Character->IsLocallyControlled())
+		{
+			Character->PlaySwapMontage();
+			CombatState = ECombatState::ECS_SwappingWeapons;
+			Character->bFinishedSwapping = false;
+		}
+		break;
 	}
 }
 
@@ -253,7 +261,6 @@ void UCombatComponent::MulticastShotgunFire_Implementation(const TArray<FVector_
 	if (Character && Character->IsLocallyControlled()) return;
 	LocalFire(TraceHitTargets);
 }
-
 
 void UCombatComponent::StartFireTimer()
 {
@@ -780,6 +787,7 @@ void UCombatComponent::EquipSecondaryWeapon(AWeapon* WeaponToEquip)
 	SecondaryWeapon = WeaponToEquip;
 	SecondaryWeapon->SetWeaponState(EWeaponState::EWS_EquippedSecondary);
 	AttachActorToBackpack(WeaponToEquip);
+
 	PlayEquipWeaponSound(WeaponToEquip);
 	// if (SecondaryWeapon->GetWeaponMesh())
 	// {
@@ -795,37 +803,23 @@ void UCombatComponent::EquipSecondaryWeapon(AWeapon* WeaponToEquip)
 	// Character->bUseControllerRotationYaw = true;
 }
 
-void UCombatComponent::OnRep_SecondaryWeapon()
+void UCombatComponent::OnRep_SecondaryWeapon(AWeapon* LastSecondaryWeapon)
 {
 	if (SecondaryWeapon && Character)
 	{
 		SecondaryWeapon->SetWeaponState(EWeaponState::EWS_EquippedSecondary);
 		AttachActorToBackpack(SecondaryWeapon);
-		PlayEquipWeaponSound(EquippedWeapon);
+		if (EquippedWeapon != nullptr && LastSecondaryWeapon == nullptr)
+		{
+			PlayEquipWeaponSound(SecondaryWeapon);
+		}
+		// PlayEquipWeaponSound(SecondaryWeapon);
 		// if (SecondaryWeapon->GetWeaponMesh())
 		// {
 		// 	SecondaryWeapon->GetWeaponMesh()->SetCustomDepthStencilValue(CUSTOM_DEPTH_TAN);
 		// 	SecondaryWeapon->GetWeaponMesh()->MarkRenderStateDirty();
 		// }
 	}
-}
-
-void UCombatComponent::SwapWeapons()
-{
-	if (CombatState != ECombatState::ECS_Unoccupied) return;
-
-	AWeapon* TempWeapon = EquippedWeapon;
-	EquippedWeapon = SecondaryWeapon;
-	SecondaryWeapon = TempWeapon;
-
-	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
-	AttachActorToRightHand(EquippedWeapon);
-	EquippedWeapon->SetHUDAmmo();
-	UpdateCarriedAmmo();
-	PlayEquipWeaponSound(EquippedWeapon);
-
-	SecondaryWeapon->SetWeaponState(EWeaponState::EWS_EquippedSecondary);
-	AttachActorToBackpack(SecondaryWeapon);
 }
 
 void UCombatComponent::DropEquippedWeapon()
@@ -851,6 +845,53 @@ void UCombatComponent::PlayEquipWeaponSound(AWeapon* WeaponToEquip)
 			WeaponToEquip->EquipSound,
 			Character->GetActorLocation()
 		);
+	}
+}
+
+#pragma endregion
+
+#pragma region SwapWeapon
+
+bool UCombatComponent::ShouldSwapWeapons()
+{
+	return (EquippedWeapon != nullptr && SecondaryWeapon != nullptr);
+}
+
+void UCombatComponent::SwapWeapons()
+{
+	if (CombatState != ECombatState::ECS_Unoccupied || 
+		Character == nullptr || !Character->HasAuthority()) return;
+
+	Character->PlaySwapMontage();
+	CombatState = ECombatState::ECS_SwappingWeapons;
+	Character->bFinishedSwapping = false;
+}
+
+void UCombatComponent::FinishSwapAttachWeapons()
+{
+	// 仅在服务器端才更改主武器与副武器，否则会执行多次，造成逻辑混乱
+	if (Character->HasAuthority())
+	{
+		AWeapon* TempWeapon = EquippedWeapon;
+		EquippedWeapon = SecondaryWeapon;
+		SecondaryWeapon = TempWeapon;
+		EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
+		SecondaryWeapon->SetWeaponState(EWeaponState::EWS_EquippedSecondary);
+		PlayEquipWeaponSound(EquippedWeapon);
+	}
+
+	AttachActorToRightHand(EquippedWeapon);
+	EquippedWeapon->SetHUDAmmo();
+	UpdateCarriedAmmo();
+	AttachActorToBackpack(SecondaryWeapon);
+}
+
+void UCombatComponent::FinishSwap()
+{
+	if (Character) 
+	{
+		Character->bFinishedSwapping = true;
+		if (Character->HasAuthority()) CombatState = ECombatState::ECS_Unoccupied;
 	}
 }
 

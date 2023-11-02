@@ -390,7 +390,22 @@ void ABlasterCharacter::EquipButtonPressed()
 	{
 		// 调用 Server RPC，因此装备武器的操作只会在服务器上执行
 		// 再由服务器同步给客户端
-		ServerEquipButtonPressed();
+		// ServerEquipButtonPressed();
+		if (Combat->CombatState == ECombatState::ECS_Unoccupied) {
+			ServerEquipButtonPressed();
+		}
+
+		bool bSwap = Combat->ShouldSwapWeapons() && 
+			!HasAuthority() && 
+			Combat->CombatState == ECombatState::ECS_Unoccupied && 
+			OverlappingWeapon == nullptr;
+
+		if (bSwap)	
+		{
+			PlaySwapMontage();
+			Combat->CombatState = ECombatState::ECS_SwappingWeapons;
+			bFinishedSwapping = false;
+		}
 	}
 }
 
@@ -451,6 +466,19 @@ AWeapon* ABlasterCharacter::GetEquippedWeapon() const
 {
 	if (Combat) return Combat->EquippedWeapon;
 	return nullptr;
+}
+
+#pragma endregion
+
+#pragma region SwapWeapon
+
+void ABlasterCharacter::PlaySwapMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && SwapMontage)
+	{
+		AnimInstance->Montage_Play(SwapMontage);
+	}
 }
 
 #pragma endregion

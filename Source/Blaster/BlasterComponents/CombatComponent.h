@@ -60,7 +60,7 @@ protected:
 	void OnRep_EquippedWeapon();
 
 	UFUNCTION()
-	void OnRep_SecondaryWeapon();
+	void OnRep_SecondaryWeapon(AWeapon* LastSecondaryWeapon);
 
 	void FireButtonPressed(bool bPressed);
 
@@ -251,5 +251,17 @@ private:
 
 public:	
 	FORCEINLINE int32 GetGrenades() const { return Grenades; }
-	bool ShouldSwapWeapons() { return (EquippedWeapon != nullptr && SecondaryWeapon != nullptr); }
+	
+
+// ====================== swap weapons ====================== // 
+
+public:
+	bool ShouldSwapWeapons();
+
+	UFUNCTION(BlueprintCallable)
+	void FinishSwap();
+
+	UFUNCTION(BlueprintCallable)
+	void FinishSwapAttachWeapons();
+
 };

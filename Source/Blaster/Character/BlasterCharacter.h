@@ -358,6 +358,16 @@ public:	// Getter & Setter
 
 	FORCEINLINE ULagCompensationComponent* GetLagCompensation() const { return LagCompensation; }
 
+
+// ========================= swap weapon ========================= // 
+private:
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* SwapMontage;
+
+public:
+	void PlaySwapMontage();
+	bool bFinishedSwapping = false;
+
 public:	
 
 };
