@@ -262,16 +262,16 @@ FServerSideRewindResult ULagCompensationComponent::ConfirmHit(
 		if (ConfirmHitResult.bBlockingHit) 
 		{
 
-			if (ConfirmHitResult.Component.IsValid())
-			{
-				// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Hit Head"));
-				USphereComponent* Box = Cast<USphereComponent>(ConfirmHitResult.Component);
-				if (Box)
-				{
-					DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
-						Box->GetScaledSphereRadius(), 8, FColor::Red, false, 8.f);
-				}
-			}
+			// if (ConfirmHitResult.Component.IsValid())
+			// {
+			// 	// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Hit Head"));
+			// 	USphereComponent* Box = Cast<USphereComponent>(ConfirmHitResult.Component);
+			// 	if (Box)
+			// 	{
+			// 		DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
+			// 			Box->GetScaledSphereRadius(), 8, FColor::Red, false, 8.f);
+			// 	}
+			// }
 
 			ResetHitBoxes(HitCharacter, CurrentFrame);
 			EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::QueryAndPhysics);
@@ -298,16 +298,16 @@ FServerSideRewindResult ULagCompensationComponent::ConfirmHit(
 			if (ConfirmHitResult.bBlockingHit)
 			{
 
-				if (ConfirmHitResult.Component.IsValid())
-				{
-					// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Hit Body"));
-					USphereComponent* Box = Cast<USphereComponent>(ConfirmHitResult.Component);
-					if (Box)
-					{
-						DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
-							Box->GetScaledSphereRadius(), 8, FColor::Blue, false, 8.f);
-					}
-				}
+				// if (ConfirmHitResult.Component.IsValid())
+				// {
+				// 	// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Hit Body"));
+				// 	USphereComponent* Box = Cast<USphereComponent>(ConfirmHitResult.Component);
+				// 	if (Box)
+				// 	{
+				// 		DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
+				// 			Box->GetScaledSphereRadius(), 8, FColor::Blue, false, 8.f);
+				// 	}
+				// }
 
 				ResetHitBoxes(HitCharacter, CurrentFrame);
 				EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::QueryAndPhysics);
@@ -452,15 +452,15 @@ void ULagCompensationComponent::ShotgunConfirmHit(
 			if (BlasterCharacter)
 			{
 
-				if (ConfirmHitResult.Component.IsValid())
-				{
-					USphereComponent* Box = Cast<USphereComponent>(ConfirmHitResult.Component);
-					if (Box)
-					{
-						DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
-							Box->GetScaledSphereRadius(), 8, FColor::Red, false, 8.f);
-					}
-				}
+				// if (ConfirmHitResult.Component.IsValid())
+				// {
+				// 	USphereComponent* Box = Cast<USphereComponent>(ConfirmHitResult.Component);
+				// 	if (Box)
+				// 	{
+				// 		DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
+				// 			Box->GetScaledSphereRadius(), 8, FColor::Red, false, 8.f);
+				// 	}
+				// }
 
 				// 将 headshot 的结果保存在 ShotgunResult 结构体中
 				if (OutShotgunResult.HeadShots.Contains(BlasterCharacter))
@@ -507,15 +507,15 @@ void ULagCompensationComponent::ShotgunConfirmHit(
 			if (BlasterCharacter)
 			{
 
-				if (ConfirmHitResult.Component.IsValid())
-				{
-					USphereComponent* Box = Cast<USphereComponent>(ConfirmHitResult.Component);
-					if (Box)
-					{
-						DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
-							Box->GetScaledSphereRadius(), 8, FColor::Blue, false, 8.f);
-					}
-				}
+				// if (ConfirmHitResult.Component.IsValid())
+				// {
+				// 	USphereComponent* Box = Cast<USphereComponent>(ConfirmHitResult.Component);
+				// 	if (Box)
+				// 	{
+				// 		DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
+				// 			Box->GetScaledSphereRadius(), 8, FColor::Blue, false, 8.f);
+				// 	}
+				// }
 
 				// 将 bodyshot 的结果保存在 ShotgunResult 结构体中
 				if (OutShotgunResult.BodyShots.Contains(BlasterCharacter))
@@ -596,15 +596,15 @@ FServerSideRewindResult ULagCompensationComponent::ProjectileConfirmHit(
 	
 	if (PathResult.HitResult.bBlockingHit) 
 	{
-		if (PathResult.HitResult.Component.IsValid())
-		{
-			USphereComponent* Box = Cast<USphereComponent>(PathResult.HitResult.Component);
-			if (Box)
-			{
-				DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
-					Box->GetScaledSphereRadius(), 8, FColor::Red, false, 8.f);
-			}
-		}
+		// if (PathResult.HitResult.Component.IsValid())
+		// {
+		// 	USphereComponent* Box = Cast<USphereComponent>(PathResult.HitResult.Component);
+		// 	if (Box)
+		// 	{
+		// 		DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
+		// 			Box->GetScaledSphereRadius(), 8, FColor::Red, false, 8.f);
+		// 	}
+		// }
 
 		ResetHitBoxes(HitCharacter, CurrentFrame);
 		EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::QueryAndPhysics);
@@ -624,15 +624,15 @@ FServerSideRewindResult ULagCompensationComponent::ProjectileConfirmHit(
 		UGameplayStatics::PredictProjectilePath(this, PathParams, PathResult);
 		if (PathResult.HitResult.bBlockingHit)
 		{
-			if (PathResult.HitResult.Component.IsValid())
-			{
-				USphereComponent* Box = Cast<USphereComponent>(PathResult.HitResult.Component);
-				if (Box)
-				{
-					DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
-						Box->GetScaledSphereRadius(), 8, FColor::Blue, false, 8.f);
-				}
-			}
+			// if (PathResult.HitResult.Component.IsValid())
+			// {
+			// 	USphereComponent* Box = Cast<USphereComponent>(PathResult.HitResult.Component);
+			// 	if (Box)
+			// 	{
+			// 		DrawDebugSphere(GetWorld(), Box->GetComponentLocation(), 
+			// 			Box->GetScaledSphereRadius(), 8, FColor::Blue, false, 8.f);
+			// 	}
+			// }
 
 			ResetHitBoxes(HitCharacter, CurrentFrame);
 			EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::QueryAndPhysics);
@@ -656,8 +656,8 @@ void ULagCompensationComponent::SetProjectilePathParams(FPredictProjectilePathPa
 	PathParams.ProjectileRadius = 5.f;
 	PathParams.TraceChannel = ECC_HitBox;
 	PathParams.ActorsToIgnore.Add(GetOwner());
-	PathParams.DrawDebugTime = 5.f;
-	PathParams.DrawDebugType = EDrawDebugTrace::ForDuration;
+	// PathParams.DrawDebugTime = 5.f;
+	// PathParams.DrawDebugType = EDrawDebugTrace::ForDuration;
 }
 
 #pragma endregion

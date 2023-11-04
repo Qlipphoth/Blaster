@@ -24,7 +24,9 @@
 #include "Blaster/Weapon/WeaponTypes.h"
 #include "Components/SphereComponent.h"
 #include "Blaster/BlasterComponents/LagCompensationComponent.h"
-
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "Blaster/GameState/BlasterGameState.h"
 
 #pragma region Initialization
 
@@ -157,6 +159,12 @@ void ABlasterCharacter::PollInit()
 		{
 			BlasterPlayerState->AddToScore(0.f);
 			BlasterPlayerState->AddToDefeats(0);
+		
+			ABlasterGameState* BlasterGameState = Cast<ABlasterGameState>(UGameplayStatics::GetGameState(this));
+			if (BlasterGameState && BlasterGameState->TopScoringPlayers.Contains(BlasterPlayerState))
+			{
+				MulticastGainedTheLead();
+			}
 		}
 	}
 }
@@ -792,7 +800,7 @@ void ABlasterCharacter::PlayHitReactMontage()
 
 #pragma region Elim
 
-void ABlasterCharacter::Elim()
+void ABlasterCharacter::Elim(bool bPlayerLeftGame)
 {
 	// 掉落武器
 	if (Combat && Combat->EquippedWeapon)
@@ -811,17 +819,12 @@ void ABlasterCharacter::Elim()
 		
 	}
 	// 由于 Hit 只发生在服务器上，因此 Elim 也只会发生在服务器上
-	MulticastElim();
-	GetWorldTimerManager().SetTimer(
-		ElimTimer,
-		this,
-		&ABlasterCharacter::ElimTimerFinished,
-		ElimDelay
-	);
+	MulticastElim(bPlayerLeftGame);
 }
 
-void ABlasterCharacter::MulticastElim_Implementation()
+void ABlasterCharacter::MulticastElim_Implementation(bool bPlayerLeftGame)
 {
+	bLeftGame = bPlayerLeftGame;
 	// 淘汰时将 HUD 的武器弹药设置为 0
 	if (BlasterPlayerController)
 	{
@@ -872,23 +875,51 @@ void ABlasterCharacter::MulticastElim_Implementation()
 			GetActorLocation()
 		);
 	}
+
 	bool bHideSniperScope = IsLocallyControlled() && 
 		Combat && 
 		Combat->bAiming && 
 		Combat->EquippedWeapon && 
 		Combat->EquippedWeapon->GetWeaponType() == EWeaponType::EWT_SniperRifle;
+	
 	if (bHideSniperScope)
 	{
 		ShowSniperScopeWidget(false);
 	}
+
+	if (CrownComponent)
+	{
+		CrownComponent->DestroyComponent();
+	}
+
+	GetWorldTimerManager().SetTimer(
+		ElimTimer,
+		this,
+		&ABlasterCharacter::ElimTimerFinished,
+		ElimDelay
+	);
 }
 
 void ABlasterCharacter::ElimTimerFinished()
 {
 	ABlasterGameMode* BlasterGameMode = GetWorld()->GetAuthGameMode<ABlasterGameMode>();
-	if (BlasterGameMode)
+	if (BlasterGameMode && !bLeftGame)
 	{
 		BlasterGameMode->RequestRespawn(this, Controller);
+	}
+	if (bLeftGame && IsLocallyControlled())
+	{
+		OnLeftGame.Broadcast();
+	}
+}
+
+void ABlasterCharacter::ServerLeaveGame_Implementation()
+{
+	ABlasterGameMode* BlasterGameMode = GetWorld()->GetAuthGameMode<ABlasterGameMode>();
+	BlasterPlayerState = BlasterPlayerState == nullptr ? GetPlayerState<ABlasterPlayerState>() : BlasterPlayerState;
+	if (BlasterGameMode && BlasterPlayerState)
+	{
+		BlasterGameMode->PlayerLeftGame(BlasterPlayerState);
 	}
 }
 
@@ -1104,7 +1135,38 @@ bool ABlasterCharacter::IsLocallyReloading()
 
 #pragma endregion
 
+#pragma region Crown
 
+void ABlasterCharacter::MulticastGainedTheLead_Implementation()
+{
+	if (CrownSystem == nullptr) return;
+	if (CrownComponent == nullptr)
+	{
+		CrownComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			CrownSystem,
+			GetCapsuleComponent(),
+			FName(),
+			GetActorLocation() + FVector(0.f, 0.f, 110.f),
+			GetActorRotation(),
+			EAttachLocation::KeepWorldPosition,
+			false
+		);
+	}
+	if (CrownComponent)
+	{
+		CrownComponent->Activate();
+	}
+}
+
+void ABlasterCharacter::MulticastLostTheLead_Implementation()
+{
+	if (CrownComponent)
+	{
+		CrownComponent->DestroyComponent();
+	}
+}
+
+#pragma endregion
 
 
 

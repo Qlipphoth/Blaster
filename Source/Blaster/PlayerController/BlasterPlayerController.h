@@ -41,6 +41,8 @@ protected:
 	void SetHUDTime();
 	void PollInit();
 	
+	virtual void SetupInputComponent() override;
+
 	/** 
 	* Sync time between client and server
 	*/
@@ -135,12 +137,33 @@ private:
 	float HighPingThreshold = 150.f;
 
 // ===================== Rewind ===================== // 
-
 public:
 	FHighPingDelegate HighPingDelegate;
 
 private:
 	UFUNCTION(Server, Reliable)
 	void ServerReportPingStatus(bool bHighPing);
+
+
+// ============= Return to Main Menu ================ //
+public:
+	void ShowReturnToMainMenu();
+
+private:
+	UPROPERTY(EditAnywhere, Category = HUD)
+	TSubclassOf<class UUserWidget> ReturnToMainMenuWidget;
+
+	UPROPERTY()
+	class UReturnToMainMenu* ReturnToMainMenu;
+
+	bool bReturnToMainMenuOpen = false;
+
+// ===================== Elimination =================== //
+
+public:
+	UFUNCTION(Client, Reliable)
+	void ClientElimAnnouncement(APlayerState* Attacker, APlayerState* Victim);
+
+	void BroadcastElim(APlayerState* Attacker, APlayerState* Victim);
 
 };

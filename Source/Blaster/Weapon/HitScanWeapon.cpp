@@ -13,7 +13,6 @@
 #include "DrawDebugHelpers.h"
 
 
-
 void AHitScanWeapon::Fire(const FVector& HitTarget)
 {
 	Super::Fire(HitTarget);

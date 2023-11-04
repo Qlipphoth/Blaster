@@ -15,6 +15,9 @@
 #include "Blaster/GameState/BlasterGameState.h"
 #include "Blaster/BlasterComponents/CombatComponent.h"
 #include "Components/Image.h"
+#include "Blaster/HUD/ReturnToMainMenu.h"
+
+// TODO: 把 HUD 的功能移到对应的 WWidget 中
 
 #pragma region Initialization
 
@@ -572,8 +575,8 @@ void ABlasterPlayerController::CheckPing(float DeltaTime)
 		PlayerState = PlayerState == nullptr ? GetPlayerState<APlayerState>() : PlayerState;
 		if (PlayerState)
 		{
-			GEngine->AddOnScreenDebugMessage(
-				-1, 5.f, FColor::Red, FString::Printf(TEXT("Ping: %d"), PlayerState->GetCompressedPing()));
+			// GEngine->AddOnScreenDebugMessage(
+			// 	-1, 5.f, FColor::Red, FString::Printf(TEXT("Ping: %d"), PlayerState->GetCompressedPing()));
 			// ping is compressed; it's actually ping / 4
 			if (PlayerState->GetCompressedPing() * 4 > HighPingThreshold) 
 			{
@@ -606,6 +609,84 @@ void ABlasterPlayerController::CheckPing(float DeltaTime)
 void ABlasterPlayerController::ServerReportPingStatus_Implementation(bool bHighPing)
 {
 	HighPingDelegate.Broadcast(bHighPing);
+}
+
+#pragma endregion
+
+#pragma region Return to Main Menu
+
+void ABlasterPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+	if (InputComponent == nullptr) return;
+
+	InputComponent->BindAction("Quit", IE_Pressed, this, &ABlasterPlayerController::ShowReturnToMainMenu);
+
+}
+
+void ABlasterPlayerController::ShowReturnToMainMenu()
+{
+	if (ReturnToMainMenuWidget == nullptr) return;
+	
+	if (ReturnToMainMenu == nullptr)
+	{
+		ReturnToMainMenu = CreateWidget<UReturnToMainMenu>(this, ReturnToMainMenuWidget);
+	}
+
+	if (ReturnToMainMenu)
+	{
+		bReturnToMainMenuOpen = !bReturnToMainMenuOpen;
+		if (bReturnToMainMenuOpen)
+		{
+			ReturnToMainMenu->MenuSetup();
+		}
+		else
+		{
+			ReturnToMainMenu->MenuTearDown();
+		}
+	}
+}
+
+#pragma endregion
+
+#pragma region Elim
+
+void ABlasterPlayerController::BroadcastElim(APlayerState* Attacker, APlayerState* Victim)
+{
+	ClientElimAnnouncement(Attacker, Victim);
+}
+
+void ABlasterPlayerController::ClientElimAnnouncement_Implementation(APlayerState* Attacker, APlayerState* Victim)
+{
+	APlayerState* Self = GetPlayerState<APlayerState>();
+	if (Attacker && Victim && Self)
+	{
+		BlasterHUD = BlasterHUD == nullptr ? Cast<ABlasterHUD>(GetHUD()) : BlasterHUD;
+		if (BlasterHUD)
+		{
+			if (Attacker == Self && Victim != Self)
+			{
+				BlasterHUD->AddElimAnnouncement("You", Victim->GetPlayerName());
+				return;
+			}
+			if (Victim == Self && Attacker != Self)
+			{
+				BlasterHUD->AddElimAnnouncement(Attacker->GetPlayerName(), "you");
+				return;
+			}
+			if (Attacker == Victim && Attacker == Self)
+			{
+				BlasterHUD->AddElimAnnouncement("You", "yourself");
+				return;
+			}
+			if (Attacker == Victim && Attacker != Self)
+			{
+				BlasterHUD->AddElimAnnouncement(Attacker->GetPlayerName(), "themselves");
+				return;
+			}
+			BlasterHUD->AddElimAnnouncement(Attacker->GetPlayerName(), Victim->GetPlayerName());
+		}
+	}
 }
 
 #pragma endregion

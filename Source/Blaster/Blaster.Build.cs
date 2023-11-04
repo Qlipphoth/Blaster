@@ -17,6 +17,9 @@ public class Blaster : ModuleRules
 			"GameplayAbilities",
 			"GameplayTags",
 			"GameplayTasks",
+			"MultiplayerSessions", 
+			"OnlineSubsystem", 
+			"OnlineSubsystemSteam", 
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
