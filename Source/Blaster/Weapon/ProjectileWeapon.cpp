@@ -39,6 +39,7 @@ void AProjectileWeapon::Fire(const FVector& HitTarget)
 					SpawnedProjectile = World->SpawnActor<AProjectile>(
 						ProjectileClass, SocketTransform.GetLocation(), TargetRotation, SpawnParams);
 					SpawnedProjectile->Damage = Damage;
+					SpawnedProjectile->HeadShotDamage = HeadShotDamage;
 					// SpawnedProjectile->bUseServerSideRewind = false;
 				}
 				// 服务器端的其他角色，需要生成不会复制到客户端的本地 Projectile，需要使用 SSR
@@ -94,6 +95,7 @@ void AProjectileWeapon::Fire(const FVector& HitTarget)
 					ProjectileClass, SocketTransform.GetLocation(), TargetRotation, SpawnParams);
 				// SpawnedProjectile->bUseServerSideRewind = false;
 				SpawnedProjectile->Damage = Damage;
+				SpawnedProjectile->HeadShotDamage = HeadShotDamage;
 			}
 		}
 

@@ -49,14 +49,17 @@ void AProjectileBullet::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor,
 			Cast<ABlasterPlayerController>(OwnerCharacter->Controller);
 		if (OwnerController)
 		{
-			// 如果开启了服务器回滚则不以客户端的伤害为准，转而由客户端发送 RPC
+			// 如果未开启服务器回滚则不以客户端的伤害为准，转而由客户端发送 RPC
 			// !bUseServerSideRewind || OwnerCharacter->IsLocallyControlled() 可以保证服务器控制的角色能够正常开火
 			if (OwnerCharacter->HasAuthority() && 
 				(!bUseServerSideRewind || OwnerCharacter->IsLocallyControlled()))
 			{
+				const float DamageToCause = Hit.BoneName.ToString() == 
+					FString("head") ? HeadShotDamage : Damage;
+
 				UGameplayStatics::ApplyDamage(
 					OtherActor, 
-					Damage, 
+					DamageToCause, 
 					OwnerController, 
 					this, 
 					UDamageType::StaticClass()

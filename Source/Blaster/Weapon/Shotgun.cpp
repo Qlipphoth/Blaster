@@ -28,7 +28,8 @@ void AShotgun::FireShotgun(const TArray<FVector_NetQuantize>& HitTargets)
 
 		// Maps hit character to number of times hit
 		TMap<ABlasterCharacter*, uint32> HitMap;
-		
+		TMap<ABlasterCharacter*, uint32> HeadShotHitMap;
+
         for (FVector_NetQuantize HitTarget : HitTargets)
 		{
 			FHitResult FireHit;
@@ -37,13 +38,29 @@ void AShotgun::FireShotgun(const TArray<FVector_NetQuantize>& HitTargets)
 			ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(FireHit.GetActor());
 			if (BlasterCharacter)
 			{
-				if (HitMap.Contains(BlasterCharacter))
+				const bool bHeadShot = FireHit.BoneName.ToString() == FString("head");
+
+				if (bHeadShot)
 				{
-					HitMap[BlasterCharacter]++;
+					if (HeadShotHitMap.Contains(BlasterCharacter))
+					{
+						HeadShotHitMap[BlasterCharacter]++;
+					}
+					else
+					{
+						HeadShotHitMap.Emplace(BlasterCharacter, 1);
+					}
 				}
 				else
 				{
-					HitMap.Emplace(BlasterCharacter, 1);
+					if (HitMap.Contains(BlasterCharacter))
+					{
+						HitMap[BlasterCharacter]++;
+					}
+					else
+					{
+						HitMap.Emplace(BlasterCharacter, 1);
+					}
 				}
 
 				if (ImpactParticles)
@@ -72,24 +89,52 @@ void AShotgun::FireShotgun(const TArray<FVector_NetQuantize>& HitTargets)
 		// 存储所有被击中的角色
 		TArray<ABlasterCharacter*> HitCharacters;
 
+		// Maps Character hit to total damage
+		TMap<ABlasterCharacter*, float> DamageMap;
+
+		// Calculate body shot damage by multiplying times hit x Damage - store in DamageMap
 		for (auto HitPair : HitMap)
 		{
-			if (HitPair.Key && InstigatorController)
+			if (HitPair.Key)
 			{
-				// 如果开启了服务器回滚则不以客户端的伤害为准，转而由客户端发送 RPC
+				DamageMap.Emplace(HitPair.Key, HitPair.Value * Damage);
+				HitCharacters.AddUnique(HitPair.Key);
+			}
+		}
+
+		// Calculate head shot damage by multiplying times hit x HeadShotDamage - store in DamageMap
+		for (auto HeadShotHitPair : HeadShotHitMap)
+		{
+			if (HeadShotHitPair.Key)
+			{
+				if (DamageMap.Contains(HeadShotHitPair.Key)) {
+					DamageMap[HeadShotHitPair.Key] += HeadShotHitPair.Value * HeadShotDamage;
+				}
+				else {
+					DamageMap.Emplace(HeadShotHitPair.Key, HeadShotHitPair.Value * HeadShotDamage);
+				} 
+				HitCharacters.AddUnique(HeadShotHitPair.Key);
+			}
+		}
+
+		// Loop through DamageMap to get total damage for each character
+		for (auto DamagePair : DamageMap)
+		{
+			if (DamagePair.Key && InstigatorController)
+			{
+				// 如果未开启服务器回滚则不以客户端的伤害为准，转而由客户端发送 RPC
 				// !bUseServerSideRewind || OwnerPawn->IsLocallyControlled() 可以保证服务器控制的角色能够正常开火
-				if (HasAuthority() && (!bUseServerSideRewind || OwnerPawn->IsLocallyControlled()))
+				bool bCauseAuthDamage = !bUseServerSideRewind || OwnerPawn->IsLocallyControlled();
+				if (HasAuthority() && bCauseAuthDamage)
 				{
 					UGameplayStatics::ApplyDamage(
-						HitPair.Key, // Character that was hit
-						Damage * HitPair.Value, // Multiply Damage by number of times hit
+						DamagePair.Key, // Character that was hit
+						DamagePair.Value, // Damage calculated in the two for loops above
 						InstigatorController,
 						this,
 						UDamageType::StaticClass()
 					);
 				}
-
-				HitCharacters.Add(HitPair.Key);
 			}
 		}
 
