@@ -43,7 +43,7 @@ public:
 	virtual void OnRep_Owner() override;
 	void SetHUDAmmo();
 
-	void Dropped();
+	virtual void Dropped();
 	void AddAmmo(int32 AmmoToAdd);
 	FVector TraceEndWithScatter(const FVector& HitTarget);
 
@@ -200,6 +200,7 @@ public:
 	void SetWeaponState(EWeaponState State);
 	FORCEINLINE USphereComponent* GetAreaSphere() const { return AreaSphere; }
 	FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
+	FORCEINLINE UWidgetComponent* GetPickupWidget() const { return PickupWidget; }
 
 	FORCEINLINE float GetZoomedFOV() const { return ZoomedFOV; }
 	FORCEINLINE float GetZoomInterpSpeed() const { return ZoomInterpSpeed; }

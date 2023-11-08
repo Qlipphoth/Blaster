@@ -113,6 +113,7 @@ protected:
 	void AttachActorToRightHand(AActor* ActorToAttach);
 	void AttachActorToLeftHand(AActor* ActorToAttach);
 	void AttachActorToBackpack(AActor* ActorToAttach);
+	void AttachFlagToLeftHand(AWeapon* Flag);
 
 	void UpdateCarriedAmmo();
 	void PlayEquipWeaponSound(AWeapon* WeaponToEquip);
@@ -269,5 +270,17 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void FinishSwapAttachWeapons();
+
+// ====================== Flag ====================== //
+
+private:
+	UPROPERTY(ReplicatedUsing = OnRep_HoldingTheFlag)
+	bool bHoldingTheFlag = false;
+
+	UFUNCTION()
+	void OnRep_HoldingTheFlag();
+
+	UPROPERTY()
+	AWeapon* TheFlag;
 
 };

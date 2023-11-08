@@ -79,6 +79,7 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME_CONDITION(UCombatComponent, CarriedAmmo, COND_OwnerOnly);  // 只同步给拥有者
 	DOREPLIFETIME(UCombatComponent, CombatState);
 	DOREPLIFETIME(UCombatComponent, Grenades);
+	DOREPLIFETIME(UCombatComponent, bHoldingTheFlag);
 }
 
 #pragma endregion
@@ -754,14 +755,29 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 	if (Character == nullptr || WeaponToEquip == nullptr) return;
 	if (CombatState != ECombatState::ECS_Unoccupied) return;
 
-	if (EquippedWeapon != nullptr && SecondaryWeapon == nullptr)
+	if (WeaponToEquip->GetWeaponType() == EWeaponType::EWT_Flag)
 	{
-		EquipSecondaryWeapon(WeaponToEquip);
+		Character->Crouch();
+		bHoldingTheFlag = true;
+		WeaponToEquip->SetWeaponState(EWeaponState::EWS_Equipped);
+		AttachFlagToLeftHand(WeaponToEquip);
+		WeaponToEquip->SetOwner(Character);
+		TheFlag = WeaponToEquip;
 	}
-	else
+	else 
 	{
-		EquipPrimaryWeapon(WeaponToEquip);
+		if (EquippedWeapon != nullptr && SecondaryWeapon == nullptr)
+		{
+			EquipSecondaryWeapon(WeaponToEquip);
+		}
+		else
+		{
+			EquipPrimaryWeapon(WeaponToEquip);
+		}
+		Character->GetCharacterMovement()->bOrientRotationToMovement = false;
+		Character->bUseControllerRotationYaw = true;
 	}
+	
 }
 
 void UCombatComponent::OnRep_EquippedWeapon()
@@ -1020,6 +1036,28 @@ void UCombatComponent::AttachActorToBackpack(AActor* ActorToAttach)
 	if (BackpackSocket)
 	{
 		BackpackSocket->AttachActor(ActorToAttach, Character->GetMesh());
+	}
+}
+
+#pragma endregion
+
+#pragma region Flag
+
+void UCombatComponent::AttachFlagToLeftHand(AWeapon* Flag)
+{
+	if (Character == nullptr || Character->GetMesh() == nullptr || Flag == nullptr) return;
+	const USkeletalMeshSocket* HandSocket = Character->GetMesh()->GetSocketByName(FName("FlagSocket"));
+	if (HandSocket)
+	{
+		HandSocket->AttachActor(Flag, Character->GetMesh());
+	}
+}
+
+void UCombatComponent::OnRep_HoldingTheFlag()
+{
+	if (bHoldingTheFlag && Character && Character->IsLocallyControlled())
+	{
+		Character->Crouch();
 	}
 }
 

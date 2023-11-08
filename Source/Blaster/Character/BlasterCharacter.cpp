@@ -347,6 +347,7 @@ void ABlasterCharacter::SimProxiesTurn()
 
 void ABlasterCharacter::Jump()
 {
+	if (Combat && Combat->bHoldingTheFlag) return;
 	if (bIsCrouched)
 	{
 		UnCrouch();
@@ -361,6 +362,7 @@ void ABlasterCharacter::Jump()
 
 void ABlasterCharacter::CrouchButtonPressed()
 {
+	if (Combat && Combat->bHoldingTheFlag) return;
 	if (bIsCrouched)
 	{
 		
@@ -497,6 +499,7 @@ void ABlasterCharacter::PlaySwapMontage()
 
 void ABlasterCharacter::FireButtonPressed()
 {
+	if (Combat && Combat->bHoldingTheFlag) return;
 	if (Combat)
 	{
 		Combat->FireButtonPressed(true);
@@ -505,6 +508,7 @@ void ABlasterCharacter::FireButtonPressed()
 
 void ABlasterCharacter::FireButtonReleased()
 {
+	if (Combat && Combat->bHoldingTheFlag) return;
 	if (Combat)
 	{
 		Combat->FireButtonPressed(false);
@@ -536,6 +540,7 @@ bool ABlasterCharacter::IsAiming()
 
 void ABlasterCharacter::AimButtonPressed()
 {
+	if (Combat && Combat->bHoldingTheFlag) return;
 	if (Combat)
 	{
 		Combat->SetAiming(true);
@@ -544,6 +549,7 @@ void ABlasterCharacter::AimButtonPressed()
 
 void ABlasterCharacter::AimButtonReleased()
 {
+	if (Combat && Combat->bHoldingTheFlag) return;
 	if (Combat)
 	{
 		Combat->SetAiming(false);
@@ -626,6 +632,7 @@ void ABlasterCharacter::CalculateAO_Pitch()
 
 void ABlasterCharacter::ReloadButtonPressed()
 {
+	if (Combat && Combat->bHoldingTheFlag) return;
 	if (Combat)
 	{
 		Combat->Reload();
@@ -810,7 +817,7 @@ void ABlasterCharacter::PlayHitReactMontage()
 void ABlasterCharacter::Elim(bool bPlayerLeftGame)
 {
 	// 掉落武器
-	if (Combat && Combat->EquippedWeapon)
+	if (Combat)
 	{
 		// // 销毁初始武器
 		// if (Combat->EquippedWeapon->bDestroyWeapon)
@@ -823,6 +830,7 @@ void ABlasterCharacter::Elim(bool bPlayerLeftGame)
 		// }
 		if (Combat->EquippedWeapon) Combat->EquippedWeapon->Dropped();
 		if (Combat->SecondaryWeapon) Combat->SecondaryWeapon->Dropped();
+		if (Combat->TheFlag) Combat->TheFlag->Dropped();
 		
 	}
 	// 由于 Hit 只发生在服务器上，因此 Elim 也只会发生在服务器上
@@ -1205,3 +1213,12 @@ void ABlasterCharacter::SetTeamColor(ETeam Team)
 
 #pragma endregion
 
+#pragma region Flag
+
+bool ABlasterCharacter::IsHoldingTheFlag() const
+{
+	if (Combat == nullptr) return false;
+	return Combat->bHoldingTheFlag;
+}
+
+#pragma endregion
