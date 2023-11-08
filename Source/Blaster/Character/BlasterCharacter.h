@@ -403,6 +403,8 @@ public:
 
 public:
 	void SetTeamColor(ETeam Team);
+	ETeam GetTeam();
+	void SetHoldingTheFlag(bool bHolding);
 
 private:
 	/** 
@@ -423,5 +425,9 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = Elim)
 	UMaterialInstance* OriginalMaterial;
+
+protected:
+	void SetSpawnPoint();
+	void OnPlayerStateInitialized();
 
 };
