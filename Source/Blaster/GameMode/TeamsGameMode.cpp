@@ -1,17 +1,22 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-
-
 #include "TeamsGameMode.h"
 #include "Blaster/GameState/BlasterGameState.h"
 #include "Blaster/PlayerState/BlasterPlayerState.h"
+#include "Blaster/PlayerController/BlasterPlayerController.h"
 #include "Kismet/GameplayStatics.h"
 
 ATeamsGameMode::ATeamsGameMode()
 {
-	bDelayedStart = false;
+	// bDelayedStart = false;
+	bTeamsMatch = true;
 }
+
+// void ATeamsGameMode::Tick(float DeltaTime)
+// {
+// 	Super::Tick(DeltaTime);
+// }
 
 void ATeamsGameMode::PostLogin(APlayerController* NewPlayer)
 {
@@ -99,3 +104,21 @@ float ATeamsGameMode::CalculateDamage(AController* Attacker, AController* Victim
 	return BaseDamage;
 }
 
+void ATeamsGameMode::PlayerEliminated(ABlasterCharacter* ElimmedCharacter, ABlasterPlayerController* VictimController, ABlasterPlayerController* AttackerController)
+{
+	Super::PlayerEliminated(ElimmedCharacter, VictimController, AttackerController);
+
+	ABlasterGameState* BGameState = Cast<ABlasterGameState>(UGameplayStatics::GetGameState(this));
+	ABlasterPlayerState* VictimPlayerState = VictimController ? Cast<ABlasterPlayerState>(VictimController->PlayerState) : nullptr;
+	if (BGameState && VictimPlayerState)
+	{
+		if (VictimPlayerState->GetTeam() == ETeam::ET_BlueTeam)
+		{
+			BGameState->RedTeamScores();
+		}
+		if (VictimPlayerState->GetTeam() == ETeam::ET_RedTeam)
+		{
+			BGameState->BlueTeamScores();
+		}
+	}
+}

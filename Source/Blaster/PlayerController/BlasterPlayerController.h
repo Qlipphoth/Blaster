@@ -29,8 +29,10 @@ public:
 
 	virtual float GetServerTime(); // Synced with server world clock
 	virtual void ReceivedPlayer() override; // Sync with server clock as soon as possible
-	void OnMatchStateSet(FName State);
-	void HandleMatchHasStarted();
+	// void OnMatchStateSet(FName State);
+	// void HandleMatchHasStarted();
+	void OnMatchStateSet(FName State, bool bTeamsMatch = false);
+	void HandleMatchHasStarted(bool bTeamsMatch = false);
 	void HandleCooldown();
 	void ShowWinner();
 
@@ -159,11 +161,28 @@ private:
 	bool bReturnToMainMenuOpen = false;
 
 // ===================== Elimination =================== //
-
 public:
 	UFUNCTION(Client, Reliable)
 	void ClientElimAnnouncement(APlayerState* Attacker, APlayerState* Victim);
 
 	void BroadcastElim(APlayerState* Attacker, APlayerState* Victim);
+
+// ==================== Team Score ====================== //
+public:
+	UPROPERTY(ReplicatedUsing = OnRep_ShowTeamScores)
+	bool bShowTeamScores = false;
+
+	UFUNCTION()
+	void OnRep_ShowTeamScores();
+
+	FString GetInfoText(const TArray<class ABlasterPlayerState*>& Players);
+	FString GetTeamsInfoText(class ABlasterGameState* BlasterGameState);
+
+	void SetHUDRedTeamScore(int32 RedScore);
+	void SetHUDBlueTeamScore(int32 BlueScore);
+
+private:
+	void HideTeamScores();
+	void InitTeamScores();
 
 };
